@@ -1,5 +1,9 @@
 # bkEvol
 ## The Calculation Procedure
+The algorithm itself is explained in the pdf file with notes.
+To quickly summarise, the solved equations are of so called Volterra type, the most important property is the presence of the evolution scale, which resembles time in such a sense that the evolution in given "time" depends only on "times" before (causality for rapidity y=log 1/x).
+The PDF at the starting rapidity is interpolated using Chebyshev polynomials and coefficients of these polynomials are evolved to the larger evolution scales.
+
 The program is using several ways to boost the computation speed.
 
 When fitting the HERA data there are 3 elementary steps which can be computationally intense:
@@ -7,9 +11,9 @@ When fitting the HERA data there are 3 elementary steps which can be computation
 2. Calculation of the convolution kernel (PDF -> F2, FL, sigmaR)
 3. Applying convolution and evolution kernel (called several hundreds of times when fitting)
 
-The parallelisation of the step 1) and 2) is trivial as the kernel cubes (3D matrices) can be calculated independently for each z (evolution kernel) and each Q2 (convolution kernel).
+The parallelisation of the step 1. and 2. is trivial as the kernel cubes (3D matrices) can be calculated independently for each z (evolution kernel) and each Q2 (convolution kernel).
 These kernels can be consequently stored into the files (currently HDF5 is used).
-Fitting then represents only loading the kernels form hdf5 files and applying them multiple times to the inputPDF to find the minimum.
+Fitting then represents only loading the kernels form hdf5 files and applying them multiple times to the initialPDF to find the minimum.
 
 ### Parallelisation applied in each step:
 1. Evolution kernel
@@ -63,6 +67,8 @@ For example in Ubuntu one can get Docker and git by this command
 sudo apt-get install docker.io git
 ```
 Notice, that running via Docker is as quick as the native running. 
+
+In the current initial setup, the result is a solution of BFKL equation (to be easily compared with bkSolver).
 
 ### Compiling using Classical Way
 Without using Docker all the packages above must be installed which can be tedious, especially the installation of ROOT. The Armadillo can be installed using the attached script `installARMA.sh`.

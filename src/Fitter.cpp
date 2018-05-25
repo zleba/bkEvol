@@ -211,8 +211,6 @@ void Fitter::Init(string dirName)
     */
 
 
-                
-    cout << "Helenka " << __LINE__ << endl;
 
     //TF2 *fun = new TF2("function", *this, 0.0, 1.0, 0.001, 10);
     //TF2 * fun = new TF2("fun",[&](double*x, double *q){int n; return getChi2(n); }, 0, 1, 0.0001, 10);
@@ -311,9 +309,7 @@ void Fitter::Init(string dirName)
     minex_func.params = this;
 
     s = gsl_multimin_fminimizer_alloc (T, nPar);
-    cout << "Helenka start" << __LINE__ << endl;
     gsl_multimin_fminimizer_set (s, &minex_func, x, ss);
-    cout << "Helenka end" << __LINE__ << endl;
 
     do
     {
