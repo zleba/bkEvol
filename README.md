@@ -16,26 +16,30 @@ These kernels can be consequently stored into the files (currently HDF5 is used)
 Fitting then represents only loading the kernels form hdf5 files and applying them multiple times to the initialPDF to find the minimum.
 
 ### Parallelisation applied in each step:
-1. Evolution kernel
-Currently openMP is coded as default to use all CPU cores.
-In addition the openMPI parallelisation is also implemented for systems with shared memory (~100 cores).  In case that only one CPU is available (e.g. running on laptop) this parallelisation has no effect.
-The batch calculation of the evolution kernel can be easily implemented but as there is not large time issue, it's not used yet.
+1. **Evolution kernel**
 
-2. Convolution kernel
-The calculation requires multidimensional integration which is quite time consuming.
-To boost it, each q2 node is calculated as one job at batch system (~50jobs).
-Each such job employs openMP to make use of all cores of the machine.
+   Currently openMP is coded as default to use all CPU cores.
+   In addition the openMPI parallelisation is also implemented for systems with shared memory (~100 cores).  In case that    only one CPU is available (e.g. running on laptop) this parallelisation has no effect.
+   The batch calculation of the evolution kernel can be easily implemented but as there is not large time issue, it's not used yet.
 
-3. Application of the kernels
-This last step is purely about linear algebra but cannot be parallelised trivially.
-The PDF always depends only on PDF at higher x-values.
-Therefore, the next, lower x-value depends on the previous, higher, one.
-To boost such calculation the special library for linear algebra (armadillo using BLAS procedures) is used.
-The BLAS procedures internally use openMP and SIMD parallelisation. 
-Furthermore, the evaluation of PDF for single x-value is parallelised by openMPI.
-As an alternative, also the GPU-based kernel application is implemented.
-In this case, the BLAS procedures are evaluated at GPU within CUDA.
-It can speed up the calculation substantially but nVidia GPU is required.
+2. **Convolution kernel**
+   
+   The calculation requires multidimensional integration which is quite time consuming.
+   To boost it, each q2 node is calculated as one job at batch system (~50jobs).
+   Each such job employs openMP to make use of all cores of the machine.
+
+3. **Application of the kernels**
+   
+   This last step is purely about linear algebra but cannot be parallelised trivially.
+   The PDF always depends only on PDF at higher x-values.
+   Therefore, the next, lower x-value depends on the previous, higher, one.
+   To boost such calculation the special library for linear algebra (armadillo using BLAS procedures) is used.
+   The BLAS procedures internally use openMP and SIMD parallelisation. 
+   Furthermore, the evaluation of PDF for single x-value is parallelised by openMPI.
+   
+   As an alternative, also the GPU-based kernel application is implemented.
+   In this case, the BLAS procedures are evaluated at GPU within CUDA.
+   It can speed up the calculation substantially but nVidia GPU is required.
 
 ## Installation:
 ### Required libraries
