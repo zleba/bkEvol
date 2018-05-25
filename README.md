@@ -62,7 +62,8 @@ cd bkEvol
 ```
 Where the first command download the source code (bkEvol directory), then one runs the compilation using compiler in the Docker image and finally runs the program itself with the given steering file.
 The `rd` script will first automatically download the image which can take a while.
-Note that Docker must be installed. Instructions for various operation systems are given in 
+
+Note, that Docker must be installed. Instructions for various operation systems are given in 
 
 https://docs.docker.com/install/
 
