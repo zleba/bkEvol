@@ -221,14 +221,16 @@ void PlotOverview(vector<map<double, TGraph*>> grMap, TString mode, double Min, 
 
     int start = vals.size()*0.00;
     int end = vals.size()*1.00;
-    int step = 9;
+
+    int step = (mode == "kT") ? 30 : 70;
     int iCol =0;
     for(int i = start; i < end; i+=step) {
         if(iCol == 0) {
             grMap[0][vals[i]]->Draw("al");
         }
-        else
+        else {
             grMap[0][vals[i]]->Draw("l same");
+        }
         grMap[0][vals[i]]->SetLineColor(cols[iCol%9]);
 
         if(grMap.size() == 2) {
@@ -259,10 +261,10 @@ void PlotOverview(vector<map<double, TGraph*>> grMap, TString mode, double Min, 
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
 
-    leg->AddEntry((TObject*)0, "Eq. 85 (n_{f}=4)", "h");
+    leg->AddEntry((TObject*)0, "Effect of DGLAP term", "h");
 
-    leg->AddEntry((TObject*)0, "Solid - Radek", "h");
-    leg->AddEntry((TObject*)0, "Dashed - Michal", "h");
+    leg->AddEntry((TObject*)0, "Solid - w/o DGLAP", "h");
+    leg->AddEntry((TObject*)0, "Dashed - with DGLAP", "h");
 
     for(int i = start; i < end; i+=step) {
         double val =  vals[i];
@@ -279,14 +281,14 @@ void PlotOverview(vector<map<double, TGraph*>> grMap, TString mode, double Min, 
 void compareNew()
 {
     
-    auto graphsBK = ReadFile("../bkresult.dat");
+    //auto graphsBK = ReadFile("../bkresult.dat");
 
     map<double, TGraph*> graphsMLy, graphsMLkt;
     map<double, TGraph*> graphsRA1y, graphsRA1kt;
     map<double, TGraph*> graphsRA2y, graphsRA2kt;
-    tie(graphsMLy, graphsMLkt) = ReadMichalFileBoth("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/eq84M.dat");
-    tie(graphsRA1y, graphsRA1kt) = ReadMichalFileBoth("/home/radek/Dropbox/Krakow/iterate/out84");// hope85highStat");
-    tie(graphsRA2y, graphsRA2kt) = ReadMichalFileBoth("/home/radek/Dropbox/Krakow/iterate/out83");
+    //tie(graphsMLy, graphsMLkt) = ReadMichalFileBoth("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/eq84M.dat");
+    tie(graphsRA1y, graphsRA1kt) = ReadMichalFileBoth("bfklFull.txt");// hope85highStat");
+    tie(graphsRA2y, graphsRA2kt) = ReadMichalFileBoth("bfklFullDGLAP.txt");
 
 
     //auto graphsRA = ReadFileRadek("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/RADEK_kt2expmKT2/res79normal");
@@ -315,11 +317,11 @@ void compareNew()
 
 
     TCanvas *can3 = new TCanvas("can3", "canvas");
-    PlotOverview({graphsRA1y, graphsMLy}, "y", 1e-6, 2e2);
-    //can3->SaveAs("comparison85.pdf(");
+    PlotOverview({graphsRA1y, graphsRA2y}, "y", 1e-6, 2e2);
+    can3->SaveAs("comparisonYfixed.pdf");
     TCanvas *can4 = new TCanvas("can4", "canvas");
-    PlotOverview({graphsRA1kt, graphsMLkt}, "kT", 1e-6, 2e2);
-    //can4->SaveAs("comparison85.pdf)");
+    PlotOverview({graphsRA1kt, graphsRA2kt}, "kT", 1e-6, 2e2);
+    can4->SaveAs("comparisonKTfixed.pdf");
 
 
     //DrawRatio( { getNth(graphsRA1y,150), getNth(graphsRA2y,150) });
