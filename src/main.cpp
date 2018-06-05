@@ -104,11 +104,6 @@ int main(int argc, char **argv)
         return kT2 * exp(-kT2);// * pow(max(0., 0.4-x), 2);
     });
 
-    //solver.SetSolution([](double x, double kT2) {
-        //return 1./(1 + sqrt(kT2))/x;
-        //return sqrt(x)*(1-x)/(1 + sqrt(kT2));
-            //});
-
     //solver.LoadConvKernels("data/eq8gen");
     //solver.LoadEvolKernels("data/eq8gen");
     cout << "Weights calculated " << endl;
