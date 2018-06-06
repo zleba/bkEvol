@@ -58,24 +58,12 @@ void Solver::InitMat()
 
                 if(!toTrivial || i % fac == 0) {
 
-<<<<<<< HEAD
-                    //mTemp(i,j) += KernelBFKL(l, lp, z) * w;
-                    //mTemp(i,i) += KernelBFKLDiag(l, lp, z) * w;
-
-                    //mTemp(i,j) += Kernel83(l, lp, z) * w;
-                    //mTemp(i,i) += Kernel83Diag(l, lp, z) * w;
-
-                    mTemp(i,j) += Kernel86(l, lp, z) * w;
-                    mTemp(i,i) += Kernel86Diag(l, lp, z) * w;
-                    mDiagTemp(i,j) += Kernel86zDiag(l, lp, z) * w;
-=======
                     mTemp(i,j) += KernelBFKL(l, lp, z) * w;
                     mTemp(i,i) += KernelBFKLDiag(l, lp, z) * w;
 
                     //mTemp(i,j) += Kernel86(l, lp, z) * w;
                     //mTemp(i,i) += Kernel86Diag(l, lp, z) * w;
                     //mDiagTemp(i,j) += Kernel86zDiag(l, lp, z) * w;
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
 
                     //mTemp(i,j) += Kernel9(l, lp, z) * w;
                     //mTemp(i,i) += Kernel9Diag(l, lp, z) * w;
@@ -211,11 +199,7 @@ void Solver::EvolveNew()
 
 
     //bool doGPU = true;
-<<<<<<< HEAD
-#ifdef hasGPU
-=======
 #if hasGPU == true
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
     if(!gpu.isInited) gpu.InitAll(matN, convF2, convFL);
     gpu.ResetVector();
 #endif
@@ -254,11 +238,7 @@ void Solver::EvolveNew()
         //openMPI treatment
         int start=1, end;
 
-<<<<<<< HEAD
-    #ifdef hasGPU //with GPU
-=======
     #if hasGPU == true //with GPU
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
             if(y > 1) {
                 gpu.ConvoluteAll(y);
                 //gpu.GetResult(y, yTemp);
@@ -316,11 +296,7 @@ void Solver::EvolveNew()
         F2rap[y] += 0.5*convF2.slice(0) * PhiRapN[y];
         FLrap[y] += 0.5*convFL.slice(0) * PhiRapN[y];
 
-<<<<<<< HEAD
-        #ifdef hasGPU
-=======
         #if hasGPU == true
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
             gpu.SetPhi(y, PhiRapN[y]);
         #endif
 
