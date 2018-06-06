@@ -96,16 +96,23 @@ int main(int argc, char **argv)
 
 
 
+<<<<<<< HEAD
     double yNew = log(1e8/1e2);
     int Ny = 280;
     cout << "Starting " << endl;
     Solver sol512(cin);
     sol512.InitF([](double x, double kT2) {
+=======
+    cout << "Starting " << endl;
+    Solver solver(cin);
+    solver.InitF([](double x, double kT2) {
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
         //return pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
         //return 1./pow(kT2,1);// pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
         return kT2 * exp(-kT2);// * pow(max(0., 0.4-x), 2);
     });
 
+<<<<<<< HEAD
     //sol512.SetSolution([](double x, double kT2) {
         //return 1./(1 + sqrt(kT2))/x;
         //return sqrt(x)*(1-x)/(1 + sqrt(kT2));
@@ -127,18 +134,43 @@ int main(int argc, char **argv)
         sol512.PrintReduce();
         //sol512.PrintBaseGrid();
         //sol512.PrintReduce();
+=======
+    //solver.LoadConvKernels("data/eq8gen");
+    //solver.LoadEvolKernels("data/eq8gen");
+    cout << "Weights calculated " << endl;
+    solver.InitMat();
+    solver.EvolveNew();
+    solver.PrintBaseGrid();
+
+    //solver.SaveEvolKernels("data");
+    return 0;
+    solver.CalcF2L();
+
+    cout << "Done " << endl;
+    if(GetRankSize().first == 0) {
+        solver.PrintReduce();
+        //solver.PrintBaseGrid();
+        //solver.PrintReduce();
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
     }
 
 
     return 0;
 
+<<<<<<< HEAD
     //sol512.SaveEvolKernels("data/kernel");
     sol512.LoadEvolKernels("data");
     sol512.LoadConvKernels("data");
+=======
+    //solver.SaveEvolKernels("data/kernel");
+    solver.LoadEvolKernels("data");
+    solver.LoadConvKernels("data");
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
     //MPI_Finalize();
     //return 0;
 
     cout << "Matrix initialised" << endl;
+<<<<<<< HEAD
     sol512.EvolveNew();
     //sol512.CalcF2L();
 
@@ -154,11 +186,29 @@ int main(int argc, char **argv)
     for(int i = 0; i < sol512.N; ++i) {
         const int Nnow = sol512.Nrap - 1;
         cout << "Points " <<  exp(0.5*sol512.nod.xi[i]) <<" "<< sol512.PhiRapN[Nnow](i) << endl;
+=======
+    solver.EvolveNew();
+    //solver.CalcF2L();
+
+    cout << "Done " << endl;
+    if(GetRankSize().first == 0) {
+        //solver.PrintBaseGrid();
+        solver.PrintReduce();
+    }
+    //MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+    //solver.PrintGrid();
+    return 0;
+    for(int i = 0; i < solver.N; ++i) {
+        const int Nnow = solver.Nrap - 1;
+        cout << "Points " <<  exp(0.5*solver.nod.xi[i]) <<" "<< solver.PhiRapN[Nnow](i) << endl;
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
     }
 
 
     return 0;
 
+<<<<<<< HEAD
     sol512.RunIterations(3, false);
     //for(int y = 0; y < Ny; ++y)
         //sol512.Step(yNew/Ny);
@@ -166,6 +216,17 @@ int main(int argc, char **argv)
 
     cout << "Evolution done" << endl;
     //sol512.PrintGrid();
+=======
+    solver.RunIterations(3, false);
+    double yNew = log(1e8/1e2);
+    int Ny = 280;
+    //for(int y = 0; y < Ny; ++y)
+        //solver.Step(yNew/Ny);
+
+
+    cout << "Evolution done" << endl;
+    //solver.PrintGrid();
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
 
     #if 0
 
@@ -182,6 +243,7 @@ int main(int argc, char **argv)
     */
 
     TGraph *gr512 = new TGraph();
+<<<<<<< HEAD
     //for(int i = 0; i < sol512.N; ++i) {
         //grOrg->SetPoint(i, exp(sol512.nod.xi[i]), sol512.Phi[i]);
     //}
@@ -191,6 +253,17 @@ int main(int argc, char **argv)
         const int Nnow = sol512.Nrap - 1;
         gr512->SetPoint(i, exp(sol512.nod.xi[i]), sol512.PhiRapN[Nnow](i));
         cout << "Points " <<  exp(0.5*sol512.nod.xi[i]) <<" "<< sol512.PhiRapN[Nnow](i) << endl;
+=======
+    //for(int i = 0; i < solver.N; ++i) {
+        //grOrg->SetPoint(i, exp(solver.nod.xi[i]), solver.Phi[i]);
+    //}
+
+
+    for(int i = 0; i < solver.N; ++i) {
+        const int Nnow = solver.Nrap - 1;
+        gr512->SetPoint(i, exp(solver.nod.xi[i]), solver.PhiRapN[Nnow](i));
+        cout << "Points " <<  exp(0.5*solver.nod.xi[i]) <<" "<< solver.PhiRapN[Nnow](i) << endl;
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
     }
 
     return 0;

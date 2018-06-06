@@ -1,6 +1,9 @@
 #ifndef _UTILS_
 #define _UTILS_
 
+#include <utility>
+using namespace std;
+
 inline pair<long long,long long> GetStartEnd(int nrank, int rank, long long Min, long long Max)
 {
     if(Max < Min) return make_pair(Min, Max);

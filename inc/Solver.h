@@ -13,7 +13,8 @@
 #include <armadillo>
 #include <mpi.h>
 
-#ifdef hasGPU
+
+#if hasGPU == true
     #include "gpuBooster.h"
 #endif
 
@@ -316,7 +317,7 @@ struct Solver {
 
     arma::mat extMat, redMat;
 
-#ifdef hasGPU
+#if hasGPU == true
     gpuBooster gpu;
 #endif
 

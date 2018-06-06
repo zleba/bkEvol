@@ -1,38 +1,26 @@
-<<<<<<< HEAD
-#define SF TString::Format
+#include "/home/radek/Dropbox/patrick/undolding/PlottingHelper/plottingHelper.h"
+R__LOAD_LIBRARY(/home/radek/Dropbox/patrick/undolding/PlottingHelper/plottingHelper_C.so)
+using namespace PlottingHelper;
 
-map<double, TGraph*> LoadDataRadek(TString fname)
+TGraph2D* Transform(map<double, TGraph*>   grMap)
 {
-    ifstream file(fname.Data());
-
-    double x, q2, f2, fl;
-    map< double, map<double, double> > points;
-
-    map<double, TGraph*> grMap;
-
-    while(1) {
-        file >> x >> q2 >> f2 >> fl;
-
-        points[q2][x] = f2;
-
-
-        if(grMap.count(q2) == 0) {
-            grMap[q2] = new TGraph();
+    TGraph2D *g2D = new TGraph2D();
+    int k = 0;
+    for(auto &gr : grMap) {
+        double y = gr.first;
+        TGraph *grNow = gr.second;
+        for(int i = 0; i < grNow->GetN(); ++i) {
+           double kt2, val;
+           grNow->GetPoint(i, kt2, val); 
+            val = abs(val);
+           g2D->SetPoint(k++, y, kt2, val);
         }
-
-        grMap[q2]->SetPoint(grMap[q2]->GetN(), x, f2);
-        //grMap[q2]->SetTitle(SF("k_{T}^{2}=%g", kT2));
-
-
-        if(!file.good()) break;
     }
 
+    return g2D;
+}
 
 
-    for(auto &p : points)
-        cout << p.first <<" "<< p.second.size() << endl;// p.second.size() << endl;
-
-=======
 map<double, TGraph*> ReadFile(const char *fName)
 {
     ifstream file(fName);
@@ -58,158 +46,16 @@ map<double, TGraph*> ReadFile(const char *fName)
         cout << kT2 <<" "<< b<<" "<<y << " "<< Phi << endl;
 
     }
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
     return grMap;
 
 }
 
-<<<<<<< HEAD
-
-map<double, TGraph*> ReadMichalFile(const char *fName, map<double, TGraph*>  myGr)
-=======
-map<double, TGraph*> ReadMichalFile(const char *fName)
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
+pair<map<double, TGraph*>, map<double, TGraph*>> ReadMichalFileBoth(const char *fName)
 {
     ifstream file(fName);
 
-    map<double, TGraph*> grMap;
-<<<<<<< HEAD
-    map< double, map<double, double> > points;
+    map<double, TGraph*> grMapY, grMapKt;
 
-    while(1) {
-        if(!file.good()) break;
-        double q2, y, f2, x;
-        file >> x >> q2 >> f2;
-        y = -log(x);
-
-        points[q2][x] = f2;
-
-    }
-
-
-    for(auto &g : myGr) {
-        double q2 = g.first;
-
-        auto First = points.begin();
-        auto Last = points.rbegin();
-
-        while( First->first < q2 && First != points.end()) ++First;
-        while( Last->first > q2 && Last != points.rend()) ++Last;
-
-        if(First == points.end()) continue;
-        if(Last == points.rend()) continue;
-
-        --First;
-        --Last;
-
-        cout << First->first <<" "<< Last->first <<" "<< q2<<  endl;
-
-        double dist1 =  log(q2 / First->first) /  log(Last->first / First->first);
-        double dist2 = -log(q2 / Last->first) /  log(Last->first / First->first);
-
-        grMap[q2] = new TGraph();
-
-        for(auto xVal : First->second) {
-           double x = xVal.first;
-           double f2_1 = xVal.second;
-           double f2_2 = (Last->second)[x];
-
-           double res = (f2_1 * dist2 + f2_2 * dist1) / (dist1 + dist2);
-
-           grMap[q2]->SetPoint(grMap[q2]->GetN(), x, res);
-
-           cout <<  xVal.first << xVal.second << endl;
-
-
-        }
-
-        //cout << p.first <<" "<< p.second.size() << endl;// p.second.size() << endl;
-
-    }
-
-
-    return grMap;
-
-}
-
-void DrawWithRat(TGraph *gr1, TGraph *gr2, double q2)
-{
-   TVirtualPad *pad = gPad;
-
-   pad->Divide(2,1, 0.0001, 0.00001);
-
-   pad->cd(1);
-   gPad->SetLeftMargin(0.15);
-
-   gr1->SetLineColor(kBlack);
-   gr2->SetLineColor(kBlue);
-   gr1->Draw("alp");
-   gr2->Draw("lp same");
-
-   gr1->GetXaxis()->SetTitle("x");
-   gr1->GetYaxis()->SetTitle("F_{2}");
-
-   gr1->SetMinimum(1e-5);
-   gPad->SetLogx();
-   gPad->SetLogy();
-
-   TLegend *leg = new TLegend(0.4, 0.7-0.4, 0.6, 0.9-0.4);
-   leg->SetBorderSize(0);
-   leg->SetHeader(SF("Q^{2} = %g", q2));
-   leg->AddEntry(gr1, "Radek", "l");
-   leg->AddEntry(gr2, "Michal", "l");
-   leg->Draw();
-
-   gPad->Update();
-   gPad->RedrawAxis();
-   gPad->Update();
-
-   pad->cd(2);
-   gPad->SetLeftMargin(0.15);
-
-   TGraph *grRat = new TGraph;
-
-   for(int i = 0; i < gr1->GetN(); ++i) {
-        double x, val1, val2;
-        gr1->GetPoint(i, x, val1);
-        val2 = gr2->Eval(x);
-
-        grRat->SetPoint(i, x, val1/val2);
-   }
-   grRat->Draw();
-   gPad->SetLogx();
-   grRat->SetMaximum(5);
-   grRat->SetMinimum(0);
-
-   grRat->GetXaxis()->SetTitle("x");
-   grRat->GetYaxis()->SetTitle("#frac{F_{2}^{Rad}}{F_{2}^{Mich}}");
-
-}
-
-
-void compare()
-{
-
-    auto grRad = LoadDataRadek("../vystupF2new");
-    //auto grMich = ReadMichalFile("/afs/desy.de/user/z/zlebcr/temp/F2-M-091017.dat", grRad);
-    auto grMich = ReadMichalFile("/afs/desy.de/user/z/zlebcr/temp/F2-191017-2.dat", grRad);
-
-    //graphs[10]->Draw("acp");
-    //temp[10]->Draw("cp same");
-
-    TCanvas *can = new TCanvas("can");
-    can->SaveAs("ahojjj.pdf[");
-    for(auto gMich : grMich) {
-        can->Clear();
-        double q2 = gMich.first;
-        DrawWithRat(grRad[q2], grMich[q2], q2);
-        can->SaveAs("ahojjj.pdf");
-    }
-    can->SaveAs("ahojjj.pdf]");
-
-}
-=======
-    int i = 0;
     while(1) {
         string str;
         getline(file, str);
@@ -221,15 +67,23 @@ void compare()
         sStream >> x >> kT2 >> Phi;
         y = -log(x/1e-2);
 
-        if(grMap.count(y) == 0) {
-            i = 0;
-            grMap[y] = new TGraph();
+        if(grMapY.count(x) == 0) {
+            grMapY[x] = new TGraph();
         }
-        grMap[y]->SetPoint(i++, kT2, Phi);
+        if(grMapKt.count(kT2) == 0) {
+            grMapKt[kT2] = new TGraph();
+        }
+
+        grMapY[x]->SetPoint(grMapY[x]->GetN(), kT2, Phi);
+        grMapY[x]->SetTitle(SF("x=%g", x));
+        grMapY[x]->SetName(SF("x=%g", x));
+        grMapKt[kT2]->SetPoint(grMapKt[kT2]->GetN(), x, Phi);
+        grMapKt[kT2]->SetTitle(SF("k_{T}^{2}=%g", kT2));
+
         //cout << kT2 <<" "<< b<<" "<<y << " "<< Phi << endl;
 
     }
-    return grMap;
+    return make_pair(grMapY, grMapKt);
 
 }
 
@@ -265,6 +119,19 @@ map<double, TGraph*> ReadFileRadek(const char *fName)
 
 }
 
+TGraph *getNth(map<double, TGraph*> grMap, int n) {
+    int k = 0;
+    for(auto &gr : grMap) {
+        if(k == n){
+            cout << "xVal is " << gr.first << endl;
+            return gr.second;
+        }
+        ++k;
+    }
+
+    return nullptr;
+
+}
 
 void DrawRatio(vector<TGraph*> grs)
 {
@@ -274,7 +141,7 @@ void DrawRatio(vector<TGraph*> grs)
         grsRat[i]->SetLineColor(grs[i]->GetLineColor());
 
 
-    TF1 *f = new TF1("f", "exp([0] + [1]*log(x) + [2] *log(x)^2 + [3]*log(x)^3 + [4]*log(x)^4)", 0.01*1.1, 1e5/1.0);
+    TF1 *f = new TF1("f", "exp([0] + [1]*log(x) + [2] *log(x)^2 + [3]*log(x)^3 + [4]*log(x)^4)", 0.01*1.1, 1e2/1.0);
     grs[0]->Fit(f);
 
     for(int j = 0; j < grs.size(); ++j) {
@@ -284,7 +151,7 @@ void DrawRatio(vector<TGraph*> grs)
         double yRef = f->Eval(x);
         //double y = grs[j]->Eval(x);
         assert(grsRat[j]);
-        cout << "RADEK " << grsRat[j] << " "<< i << endl;
+        //cout << "RADEK " << grsRat[j] << " "<< i << endl;
         grsRat[j]->SetPoint(i, x, y/yRef);
         }
     }
@@ -337,14 +204,97 @@ void DrawRatio(vector<TGraph*> grs)
 }
 
 
-void compare()
+
+
+int cols[] = {1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9, 1,2,3,4,5,6,7,8,9};
+
+void PlotOverview(vector<map<double, TGraph*>> grMap, TString mode, double Min, double Max)
+{
+    gPad->SetLogx();
+    gPad->SetLogy();
+
+    vector<double> vals;
+    for(auto &g : grMap[0])
+        vals.push_back(g.first);
+
+    gPad->SetRightMargin(0.2);
+
+    int start = vals.size()*0.00;
+    int end = vals.size()*1.00;
+
+    int step = (mode == "kT") ? 30 : 70;
+    int iCol =0;
+    for(int i = start; i < end; i+=step) {
+        if(iCol == 0) {
+            grMap[0][vals[i]]->Draw("al");
+        }
+        else {
+            grMap[0][vals[i]]->Draw("l same");
+        }
+        grMap[0][vals[i]]->SetLineColor(cols[iCol%9]);
+
+        if(grMap.size() == 2) {
+            grMap[1][vals[i]]->Draw("l same");
+            grMap[1][vals[i]]->SetLineColor(cols[iCol%9]);
+            grMap[1][vals[i]]->SetLineStyle(2);
+        }
+        ++iCol;
+    }
+
+
+    //grMap[vals[0]]->SetMinimum(Min);
+    //grMap[vals[0]]->SetMaximum(Max);
+    GetYaxis()->SetRangeUser(Min, Max);
+    GetFrame()->SetTitle("");
+
+    GetYaxis()->SetTitle("#phi");
+    if(mode == "kT")
+        GetXaxis()->SetTitle("x");
+    else
+        GetXaxis()->SetTitle("k_{T}^{2}");
+
+    //gPad->Update();
+
+
+
+    TLegend *leg = new TLegend(0.8, 0.3, 1.0, 0.7);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+
+    leg->AddEntry((TObject*)0, "Effect of DGLAP term", "h");
+
+    leg->AddEntry((TObject*)0, "Solid - w/o DGLAP", "h");
+    leg->AddEntry((TObject*)0, "Dashed - with DGLAP", "h");
+
+    for(int i = start; i < end; i+=step) {
+        double val =  vals[i];
+        if(mode == "kT")
+            leg->AddEntry(grMap[0][vals[i]], TString::Format("k_{T}^{2} = %3.3g", val), "l");
+        else
+            leg->AddEntry(grMap[0][vals[i]], TString::Format("x = %3.3g", val), "l");
+    }
+    leg->Draw();
+
+
+}
+
+void compareNew()
 {
     
-    auto graphsBK = ReadFile("../bkresult.dat");
-    auto graphsML = ReadMichalFile("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/eq81M.dat");
-    //auto graphsRA = ReadFileRadek("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/RADEK_kt2expmKT2/res79normal");
-    auto graphsRA = ReadFileRadek("/home/radek/Dropbox/Krakow/iterate/results/subKer81high");
+    //auto graphsBK = ReadFile("../bkresult.dat");
 
+    map<double, TGraph*> graphsMLy, graphsMLkt;
+    map<double, TGraph*> graphsRA1y, graphsRA1kt;
+    map<double, TGraph*> graphsRA2y, graphsRA2kt;
+    //tie(graphsMLy, graphsMLkt) = ReadMichalFileBoth("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/eq84M.dat");
+    tie(graphsRA1y, graphsRA1kt) = ReadMichalFileBoth("bfklFull.txt");// hope85highStat");
+    tie(graphsRA2y, graphsRA2kt) = ReadMichalFileBoth("bfklFullDGLAP.txt");
+
+
+    //auto graphsRA = ReadFileRadek("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/RADEK_kt2expmKT2/res79normal");
+    //auto graphsRA = ReadFileRadek("/home/radek/Dropbox/Krakow/iterate/results/subKer81high");
+
+    /*
     cout << "Graphs " <<  graphsML.size() << endl;
     for(auto &gr : graphsML) {
         cout << gr.first << endl;
@@ -355,7 +305,43 @@ void compare()
 
     grML->SetLineColor(kRed);
     grRA->SetLineColor(kBlue);
+    */
 
+    //graphsMLy.rbegin()->second->Draw("a*c");
+
+    //TCanvas *can1 = new TCanvas("can1", "canvas");
+    //PlotOverview({graphsMLkt}, "kT", 1e-7, 1e2);
+    //can1->SaveAs("allMichal.pdf");
+    //TCanvas *can2 = new TCanvas("can2", "canvas");
+    //PlotOverview({graphsMLy}, "x", 1e-7, 1e2);
+
+
+    TCanvas *can3 = new TCanvas("can3", "canvas");
+    PlotOverview({graphsRA1y, graphsRA2y}, "y", 1e-6, 2e2);
+    can3->SaveAs("comparisonYfixed.pdf");
+    TCanvas *can4 = new TCanvas("can4", "canvas");
+    PlotOverview({graphsRA1kt, graphsRA2kt}, "kT", 1e-6, 2e2);
+    can4->SaveAs("comparisonKTfixed.pdf");
+
+
+    //DrawRatio( { getNth(graphsRA1y,150), getNth(graphsRA2y,150) });
+
+    /*
+    TGraph2D *gHope = Transform(graphsML);
+
+    //gHope->Draw("TRI1");
+    gHope->Draw("TRI1");
+    gHope->SetMinimum(1e-3);
+    gHope->SetMaximum(1e2);
+    //gHope->Draw("col2");
+    gPad->SetLogy();
+    gPad->SetLogz();
+    */
+
+
+    return;
+
+    /*
     //DrawRatio({grBK, grML, grRA});
     DrawRatio({grRA, grML});
 
@@ -386,10 +372,10 @@ void compare()
     leg->AddEntry(grML, "Michal's solution of 81 (x=1e-8)", "l");
     leg->AddEntry(grRA, "Radek's solution of 81 (x=1e-8)", "l");
     leg->Draw();
+    */
 
     //can->SaveAs("eq81.eps");
 }
 
 
 
->>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511

@@ -6,6 +6,7 @@
 #include <vector>
 #include <utility>
 #include <cassert>
+#include <omp.h>
 
 #include "utils.h"
 

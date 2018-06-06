@@ -723,6 +723,12 @@ double Solver::Kernel86zDiag(double l, double lp, double x)
 
 
 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> 3218ac9a0ae3dc07b896fb991fac340ae8181511
 ////////////////////////////////////////////////
 //Equation 87 (with eps reg) 
 //BFKL with DGLAP
