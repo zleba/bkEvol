@@ -3,6 +3,8 @@
 #include <iomanip>
 #include "alphaSpline.h"
 
+
+
 double IntegralCos(double a, double x)
 {
     double p = sqrt(1 - a*a); 
