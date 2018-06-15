@@ -45,6 +45,7 @@ void Solver::InitMat()
     initOne(BFKL_res_kc_full_DGLAP);
 
 
+    cout << "Available kernels:" << endl;
     for(auto &el : kerMap) {
         cout << el.first << endl;
     }
