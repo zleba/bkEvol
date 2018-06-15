@@ -58,7 +58,7 @@ To simplify the installation Docker image including all libraries above was crea
 git clone https://github.com/zleba/bkEvol.git
 cd bkEvol
 ./rd make
-./rd ./iter \< steer/config.ini
+./rd ./bkEvol \< steer/config.ini
 ```
 Where the first command download the source code (bkEvol directory), then one runs the compilation using compiler in the Docker image and finally runs the program itself with the given steering file.
 The `rd` script will first automatically download the image which can take a while.
