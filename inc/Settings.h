@@ -4,7 +4,11 @@
 #include <string>
 #include <cassert>
 #include <dlfcn.h>
+#include <iostream>
+#include <fstream>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 
 using namespace std;
 
@@ -23,7 +27,7 @@ struct Settings {
     //const double Lmin= log(1e-4), Lmax = log(1e8);
     double mu2 = 1e-2;
     double rapMax = log(1e6), rapMin = log(1);
-    bool putZero = true;
+    bool putZero = false;
 
     string inputDir, outputDir;
 
@@ -56,6 +60,10 @@ struct Settings {
             rapMax = -log( tree.get<double>("RapiditySpace.xMin") );
             rapMin = -log( tree.get<double>("RapiditySpace.xMax") );
 
+            //Running 
+            inputDir  = tree.get<string>("RunningMode.inputEvol");
+            outputDir = tree.get<string>("RunningMode.outputEvol");
+
 
             //Transverse properties
             N = tree.get<int>("TransverseSpace.NkT2");
@@ -65,8 +73,6 @@ struct Settings {
             bkSolverGrid = tree.get<bool>("TransverseSpace.bkSolverGrid");
             toTrivial = tree.get<bool>("TransverseSpace.toTrivial");
 
-            inputDir  = tree.get<string>("Files.inputDir");
-            outputDir = tree.get<string>("Files.outputDir");
             
             //Fit Properties
             maxIter = tree.get<int>("Fit.maxIter");
@@ -134,6 +140,8 @@ struct Settings {
         cout <<  funStr << endl;
         Compile(funStr);
 
+        //cout << "exiting " << endl;
+        //exit(0);
         //cout << "f(1,0.01) = " << fitFun(1, 0.01) << endl;
         //cout << "Done " << endl;
         //exit(0);

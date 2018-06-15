@@ -8,6 +8,28 @@
 
 map<double, TGraph*> ReadFile(const char *fName);
 
+void PlainEvolution()
+{
+    cout << "Starting " << endl;
+    Solver solver(cin);
+    solver.InitF([](double x, double kT2) {
+        vector<double> params;
+        for(auto & p : Settings::I().pars)
+            params.push_back(get<0>(p));
+        return Settings::I().fitFun(kT2, x, params.data());
+    });
+
+    //solver.LoadConvKernels("data/eq8gen");
+    //solver.LoadEvolKernels("data/eq8gen");
+    cout << "Weights calculated " << endl;
+    solver.InitMat();
+    solver.EvolveNew();
+    solver.PrintBaseGrid();
+
+    //solver.SaveEvolKernels("data");
+}
+
+
 int main(int argc, char **argv)
 {
 
@@ -74,7 +96,9 @@ int main(int argc, char **argv)
     // Print off a hello world message
     cout << "Processors " << processor_name << endl;
     
+    PlainEvolution();
 
+    return 0;
 
 
     //auto pubSol32 = ReadFile("../BKsolver/bkresult32.dat");
@@ -94,25 +118,9 @@ int main(int argc, char **argv)
 
 
 
-
-
-    cout << "Starting " << endl;
     Solver solver(cin);
-    solver.InitF([](double x, double kT2) {
-        //return pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
-        //return 1./pow(kT2,1);// pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
-        return kT2 * exp(-kT2);// * pow(max(0., 0.4-x), 2);
-    });
 
-    //solver.LoadConvKernels("data/eq8gen");
-    //solver.LoadEvolKernels("data/eq8gen");
-    cout << "Weights calculated " << endl;
-    solver.InitMat();
-    solver.EvolveNew();
-    solver.PrintBaseGrid();
 
-    //solver.SaveEvolKernels("data");
-    return 0;
     solver.CalcF2L();
 
     cout << "Done " << endl;

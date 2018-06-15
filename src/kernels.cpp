@@ -448,7 +448,7 @@ double Solver::KernelSub84Diag(double l, double lp, double z)
 
 
 //Return z/6*Pgg - 1
-double PggMod(double z)
+static double PggMod(double z)
 {
     double reg = z*z*(1-z) - (2*z+1);
     //return reg;
@@ -517,7 +517,7 @@ double Solver::Kernel85Diag(double l, double lp, double z)
 }
 
 
-double Harmonic(double stepSize, int nStep)
+static double Harmonic(double stepSize, int nStep)
 {
     double rapNow = 0;
     double sum = 0;

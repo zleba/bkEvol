@@ -1,4 +1,26 @@
 #include "Solver.h"
+#include "kernels.h"
+
+typedef double (*FUNker)(double, double, double);
+
+struct Kernel {
+    FUNker OffEps, DiagEps, zDiagEps;
+    FUNker OffSub, DiagSub, zDiagSub;
+
+    Kernel(FUNker Oe, FUNker De, FUNker zDe, FUNker Os, FUNker Ds, FUNker zDs) {
+        OffEps = Oe;
+        DiagEps = De;
+        zDiagEps = zDe;
+        OffSub = Os;
+        DiagSub = Ds;
+        zDiagSub = zDs;
+    }
+    Kernel() {}
+};
+
+
+
+
 
 
 //--------------------------------------------------------------------
@@ -7,7 +29,49 @@ void Solver::InitMat()
 
     //matN.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
     //matNDiag.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
+    //inputDir
 
+    map<string,Kernel> kerMap;
+#define initOne(name)  kerMap[STRINGIFY(name)] = Kernel(&name::OffEps, &name::DiagEps, &name::zDiagEps, \
+                                                        &name::OffSub, &name::DiagSub, &name::zDiagSub);
+    initOne(BFKLplain);
+    initOne(BFKL);
+    initOne(BFKL_res);
+    initOne(BFKL_res_kc_simp);
+    initOne(BFKL_res_kc_v_r_simp);
+    initOne(BFKL_res_kc_full);
+    initOne(BFKL_res_kc_v_r_full);
+    initOne(BFKL_res_DGLAP);
+    initOne(BFKL_res_kc_full_DGLAP);
+
+
+    for(auto &el : kerMap) {
+        cout << el.first << endl;
+    }
+
+    string name =  inputDir;
+
+    string base = inputDir.substr(0, inputDir.find(':'));
+    if(!kerMap.count(base)) {
+        cout << "Kernel "<<base<< " is not implemented\nExiting" << endl;
+        exit(1);
+    }
+
+    FUNker KernelOff, KernelDiag, KernelzDiag;
+    if(inputDir.find(":eps") != string::npos) {
+        KernelOff  = kerMap[base].OffEps;
+        KernelDiag = kerMap[base].DiagEps;
+        KernelzDiag= kerMap[base].zDiagEps;
+    }
+    else if(inputDir.find(":sub") != string::npos) {
+        KernelOff  = kerMap[base].OffSub;
+        KernelDiag = kerMap[base].DiagSub;
+        KernelzDiag= kerMap[base].zDiagSub;
+    }
+    else {
+        cout << "The kernel+tag \""<< inputDir << "\" not implemented\nExiting" << endl;
+        exit(0);
+    }
 
 
     matN.zeros( N, N, Nrap);
@@ -58,8 +122,12 @@ void Solver::InitMat()
 
                 if(!toTrivial || i % fac == 0) {
 
-                    mTemp(i,j) += KernelBFKL(l, lp, z) * w;
-                    mTemp(i,i) += KernelBFKLDiag(l, lp, z) * w;
+                    //mTemp(i,j) += KernelBFKL(l, lp, z) * w;
+                    //mTemp(i,i) += KernelBFKLDiag(l, lp, z) * w;
+
+                    mTemp(i,j)     += KernelOff(l, lp, z) * w;
+                    mTemp(i,i)     += KernelDiag(l, lp, z) * w;
+                    mDiagTemp(i,j) += KernelzDiag(l, lp, z) * w;
 
                     //mTemp(i,j) += Kernel86(l, lp, z) * w;
                     //mTemp(i,i) += Kernel86Diag(l, lp, z) * w;
@@ -210,8 +278,8 @@ void Solver::EvolveNew()
     if(start == 0) {
         cout << "Size of matrixes " << N <<" : "<< matNDiag.slice(0).n_rows <<" "<< matNDiag.slice(0).n_cols <<  endl;
         arma::mat MatEq = arma::mat(N,N,arma::fill::eye) -  matNDiag.slice(0);
-        cout << "Is put Zero " << putZero << endl;
-        if(putZero) {
+        cout << "Is put Zero " << Settings::I().putZero << endl;
+        if(Settings::I().putZero) {
             PhiRapN[0] = arma::vec(N, arma::fill::zeros);
         }
         else
