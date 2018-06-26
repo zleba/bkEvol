@@ -2,4 +2,5 @@
 *.pdf
 *.dat
 arma
-iter
+bkEvol
+bkevol.so

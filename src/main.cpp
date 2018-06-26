@@ -11,12 +11,13 @@ map<double, TGraph*> ReadFile(const char *fName);
 void PlainEvolution()
 {
     cout << "Starting " << endl;
-    Solver solver(cin);
-    solver.InitF([](double x, double kT2) {
+    Settings settings(cin);
+    Solver solver(settings);
+    solver.InitF([settings](double x, double kT2) {
         vector<double> params;
-        for(auto & p : Settings::I().pars)
+        for(auto & p : settings.pars)
             params.push_back(get<0>(p));
-        return Settings::I().fitFun(kT2, x, params.data());
+        return settings.fitFun(kT2, x, params.data());
     });
 
     //solver.LoadConvKernels("data/eq8gen");

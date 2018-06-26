@@ -44,8 +44,10 @@ inline pair<int,int> GetRankSize()
 }
 
 
-inline pair<long long,long long> GetStartEnd(long long Min, long long Max)
+inline pair<long long,long long> GetStartEnd(bool isMPI, long long Min, long long Max)
 {
+    if(!isMPI) return make_pair(Min, Max);
+
     int rank, nrank;
     tie(rank,nrank) = GetRankSize();
     return GetStartEnd(nrank, rank, Min, Max);
@@ -77,9 +79,12 @@ struct Nodes {
         }
         */
 
+        cout << "I am here " <<__LINE__<< endl;
         //Classical nodes ala Clenshaw–Curtis
         if(!bkSolverMode) {
+        cout << "I am here " <<__LINE__<< " "<< N<< endl;
             xi.resize(N);
+        cout << "I am here " <<__LINE__<< endl;
             for(int i = 0; i < N; ++i) {
               double Cos = cos(i /(N-1.) * M_PI);
               xi[i] = (a + b +  Cos * (a-b) )/2.;
@@ -87,6 +92,7 @@ struct Nodes {
             }
             wi = GetWeights(N);
             for(auto &w : wi) w *= (b-a)/2.;
+        cout << "I am here " <<__LINE__<< endl;
 
         }
         //Nodes used in BKsolver
@@ -112,6 +118,7 @@ struct Nodes {
 
             wi.front() *= 0.5;
         }
+        cout << "I am here " <<__LINE__<< endl;
 
 
         SqrtExpXi.resize(xi.size());
@@ -147,9 +154,9 @@ struct Solver {
     double asMZ = 0.2;
     double LnFreeze2 = 2*log(1);
     double eps = 1e-7;
-    int Nint; // kT nodes in Nintegral
-    int N;// = 32*16 + 1; //must be 2*n+1
-    int Nrap = 1024;
+    int Nint = 513; // kT nodes in Nintegral
+    int N = 513;// = 32*16 + 1; //must be 2*n+1
+    int Nrap = 513;
     bool toTrivial = true;
 
     double Lmin= log(1e-2), Lmax = log(1e6);
@@ -157,6 +164,7 @@ struct Solver {
     double mu2 = 1e-2;
     double rapMax = log(1e6), rapMin = log(1);
     bool putZero = true;
+    bool withMPI = false;
 
     string inputDir, outputDir;
 
@@ -172,7 +180,8 @@ struct Solver {
     }
 
 
-    void Init(std::istream &Stream) {
+    Solver(Settings S) {
+
 
         /*
         boost::property_tree::ptree tree;
@@ -263,9 +272,9 @@ struct Solver {
 
         if(bkSolverGrid) assert(N == Nint);
         */
-        Settings::I().Init(Stream);
+        //Settings::I().Init(Stream);
+        //auto &S = Settings::I();
 
-        auto &S = Settings::I();
         asMZ = S.asMZ;
         LnFreeze2 = S.LnFreeze2;
         eps = S.eps;
@@ -286,7 +295,7 @@ struct Solver {
         inputDir = S.inputDir;
         outputDir= S.outputDir;
 
-
+        withMPI = S.withMPI;
 
         nod.Init(Nint, Lmin, Lmax);
         nodBase.Init(N, Lmin, Lmax);
@@ -298,9 +307,11 @@ struct Solver {
         alphaSpline::FixParameters(2, asMZ, 5, 91.2);
         //cout << "Radek " << alphaSpline::alphaS(2*log(91.2))<< endl;
 
+        InitF([](double x, double kT2) {
+            return kT2*exp(-kT2);
+        });
     }
-    Solver(std::istream &Stream)  { Init(Stream);  }
-    //Solver()  {}
+    Solver(std::istream &Stream) : Solver(Settings(Stream)) {}
 
 
 
@@ -435,4 +446,7 @@ struct Solver {
     }
 
 };
+
+
+
 #endif 

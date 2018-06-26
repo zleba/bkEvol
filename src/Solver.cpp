@@ -1,13 +1,17 @@
 #include "Solver.h"
 #include "kernels.h"
 
-typedef double (*FUNker)(double, double, double);
+//typedef double (*FUNker)(double, double, double);
 
-struct Kernel {
+typedef double (Kernel::*FUNker)(double,double,double);
+
+double dummy(double,double,double) {return 0;}
+
+struct KernelPtr {
     FUNker OffEps, DiagEps, zDiagEps;
     FUNker OffSub, DiagSub, zDiagSub;
 
-    Kernel(FUNker Oe, FUNker De, FUNker zDe, FUNker Os, FUNker Ds, FUNker zDs) {
+    KernelPtr(FUNker Oe, FUNker De, FUNker zDe, FUNker Os, FUNker Ds, FUNker zDs) {
         OffEps = Oe;
         DiagEps = De;
         zDiagEps = zDe;
@@ -15,7 +19,7 @@ struct Kernel {
         DiagSub = Ds;
         zDiagSub = zDs;
     }
-    Kernel() {}
+    KernelPtr() {}
 };
 
 
@@ -26,14 +30,38 @@ struct Kernel {
 //--------------------------------------------------------------------
 void Solver::InitMat()
 {
+    /*
+    int provided;
+    int argc = 1;
+    char **argv = new char*[2];
+    argv[0] = "bkEvol";
+    argv[1] = "bkEvol";
+    cout << "I am Before" << endl;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    cout << "I am after" << endl;
+    assert(MPI_THREAD_FUNNELED == provided);
+    */
+
 
     //matN.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
     //matNDiag.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
     //inputDir
 
-    map<string,Kernel> kerMap;
-#define initOne(name)  kerMap[STRINGIFY(name)] = Kernel(&name::OffEps, &name::DiagEps, &name::zDiagEps, \
-                                                        &name::OffSub, &name::DiagSub, &name::zDiagSub);
+    alphaSpline::FixMasses( 1e-8, 4.2,	1e21);
+    alphaSpline::FixParameters(2, asMZ, 5, 91.2);
+
+    Kernel ker;
+    ker.mu2 = mu2;
+    ker.rapMin = rapMin;
+    ker.rapMax = rapMax;
+    ker.Nrap = Nrap;
+    ker.putZero = putZero;
+    ker.LnFreeze2 = LnFreeze2;
+
+
+    map<string,KernelPtr> kerMap;
+#define initOne(name)  kerMap[STRINGIFY(name)] = KernelPtr(&Kernel::name##__OffEps, &Kernel::name##__DiagEps, &Kernel::name##__zDiagEps, \
+                                                           &Kernel::name##__OffSub, &Kernel::name##__DiagSub, &Kernel::name##__zDiagSub);
     initOne(BFKLplain);
     initOne(BFKL);
     initOne(BFKL_res);
@@ -82,7 +110,7 @@ void Solver::InitMat()
     int fac = (Nint-1)/(N-1);
 
     int start, end;
-    tie(start,end) = GetStartEnd(0, Nrap-1);
+    tie(start,end) = GetStartEnd(withMPI, 0, Nrap-1);
 
 
 
@@ -126,9 +154,14 @@ void Solver::InitMat()
                     //mTemp(i,j) += KernelBFKL(l, lp, z) * w;
                     //mTemp(i,i) += KernelBFKLDiag(l, lp, z) * w;
 
-                    mTemp(i,j)     += KernelOff(l, lp, z) * w;
-                    mTemp(i,i)     += KernelDiag(l, lp, z) * w;
-                    mDiagTemp(i,j) += KernelzDiag(l, lp, z) * w;
+                    mTemp(i,j)     += (ker.*KernelOff)(l, lp, z) * w;
+                    mTemp(i,i)     += (ker.*KernelDiag)(l, lp, z) * w;
+                    mDiagTemp(i,j) += (ker.*KernelzDiag)(l, lp, z) * w;
+                
+                    if(isnan(mTemp(i,j)))
+                        cout <<"Hela "<< (ker.*KernelOff)(l, lp, z) <<" "<< l <<" "<<lp<<" "<< z << endl;
+
+                    //cout << "Hela " << mTemp(i,j) << " "<<mTemp(i,i)<<" "<<  mDiagTemp(i,j) << endl;
 
                     //mTemp(i,j) += Kernel86(l, lp, z) * w;
                     //mTemp(i,i) += Kernel86Diag(l, lp, z) * w;
@@ -190,16 +223,24 @@ void Solver::InitMat()
     }
 
     cout << "Reduce start" << endl;
-    //Merge things together
-    MPI_Allreduce(MPI_IN_PLACE, matN.memptr(), matN.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, matNDiag.memptr(), matNDiag.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    if(withMPI) {
+        //Merge things together
+        MPI_Allreduce(MPI_IN_PLACE, matN.memptr(), matN.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, matNDiag.memptr(), matNDiag.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    }
 
     for(int y = start; y <= end; ++y) { 
         matNInv.slice(y) = inv(arma::mat(N,N,arma::fill::eye) - 0.5*matN.slice(0) -matNDiag.slice(y));
     }
-    MPI_Allreduce(MPI_IN_PLACE, matNInv.memptr(), matNInv.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    if(withMPI) MPI_Allreduce(MPI_IN_PLACE, matNInv.memptr(), matNInv.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     cout << "Reduce done" << endl;
 
+
+    putZero = ker.putZero;
+
+
+    //cout << matN << endl;
+    cout << matNInv << endl;
 
 
 
@@ -273,14 +314,18 @@ void Solver::EvolveNew()
     gpu.ResetVector();
 #endif
 
+
+    //cout << Phi0N[8] << endl;
+    //return;
+
     int start = 0;
 
     //Classical approach
     if(start == 0) {
         cout << "Size of matrixes " << N <<" : "<< matNDiag.slice(0).n_rows <<" "<< matNDiag.slice(0).n_cols <<  endl;
         arma::mat MatEq = arma::mat(N,N,arma::fill::eye) -  matNDiag.slice(0);
-        cout << "Is put Zero " << Settings::I().putZero << endl;
-        if(Settings::I().putZero) {
+        cout << "Is put Zero " << putZero << endl;
+        if(putZero) {
             PhiRapN[0] = arma::vec(N, arma::fill::zeros);
         }
         else
@@ -294,9 +339,11 @@ void Solver::EvolveNew()
             PhiRapN[y] = Phi0N[y];
     }
 
+    cout << "RADEK start,Nrap " << start+1<<" "<< Nrap << endl;
 
     for(int y = start+1; y < Nrap; ++y) {
         //Starting point of evol with 0.5 (Trapezius)
+        cout << "RADEK " << y << endl;
 
         arma::vec yTemp(N, arma::fill::zeros);
         arma::vec myVec(N, arma::fill::zeros);
@@ -324,13 +371,13 @@ void Solver::EvolveNew()
             */
      #else //no GPU
         //if(!doGPU) {
-            tie(start,end) = GetStartEnd(1, y-1); //from 1 to y-1
+            tie(start,end) = GetStartEnd(withMPI, 1, y-1); //from 1 to y-1
             //cout << "Start+end|nrap " << start <<" "<< end <<"|" << y-1<< endl;
             //Remaining without mult
             for(int d = start; d <= end; ++d)
                 yTemp += matN.slice(d) * PhiRapN[y-d];
 
-            MPI_Allreduce(MPI_IN_PLACE, yTemp.memptr(), yTemp.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+            if(withMPI) MPI_Allreduce(MPI_IN_PLACE, yTemp.memptr(), yTemp.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
         //}
     #endif
 
@@ -340,6 +387,9 @@ void Solver::EvolveNew()
         //Whole right hand side
         //yTemp = stepY * yTemp + Phi0N[y];
         yTemp += Phi0N[y];
+
+        cout << "radek "<< y << endl;
+        cout << yTemp << endl;
 
         if(y % 100 == 0)
             cout <<"Rap point " << y << endl;

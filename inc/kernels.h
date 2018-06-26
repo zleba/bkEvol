@@ -11,141 +11,35 @@ inline int NotImpleneted()
     return 0;
 }
 
-class BFKLplain {
-    public:
-        static string name()    {return "BFKLplain";}
-        static string formula() {return "";}
-        static double OffEps(double l, double lp, double z) {return NotImpleneted();}
-        static double DiagEps(double l, double lp, double z) {return NotImpleneted();}
-        static double zDiagEps(double l, double lp, double z) {return NotImpleneted();}
 
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
+struct Kernel {
 
+#define printKernel(name) double name##__OffEps  (double l, double lp, double z); \
+                          double name##__DiagEps (double l, double lp, double z); \
+                          double name##__zDiagEps(double l, double lp, double z); \
+                          double name##__OffSub  (double l, double lp, double z); \
+                          double name##__DiagSub (double l, double lp, double z); \
+                          double name##__zDiagSub(double l, double lp, double z);
 
-class BFKL {
-    public:
-        static string name()    {return "BFKL";}
-        static string formula() {return "F(x,k^2)=F0(k^2)+ aS* int_x^1 dz/z * int d^2q/(pi*q^2) left{{cal F}left(frac{x}{z},|{bf k}+{bf q}|^2right)-thetaleft(k_perp^2-q_perp^2right){cal F}left(frac{x}{z},{k_perp^2}right)right}";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z) {return 0;}
+    double mu2, eps;
+    double rapMin, rapMax;
+    int Nrap;
+    bool putZero;
+    double LnFreeze2;
 
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
+    double alphaS(double l, double lp);
+    double DGLAPterm(double l, double lp, double z);
+    pair<double,double> GetKerPar(double l, double lp);
 
-class BFKL_res {
-    public:
-        static string name()    {return "BFKL_res";}
-        static string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z) {return 0;}
-
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
-
-
-class BFKL_res_kc_simp {
-    public:
-        string name()    {return "BFKL_res_kc_simp";}
-        string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z) {return 0;}
-
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
-
-
-class BFKL_res_kc_v_r_simp {
-    public:
-        string name()    {return "BFKL_res_kc_v_r_simp";}
-        string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z) {return 0;}
-
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
-
-
-class BFKL_res_kc_full {
-    public:
-        string name()    {return "BFKL_res_kc_full";}
-        string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z) {return 0;}
-
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
-
-
-/*
-class BFKL_res_kc_full_zcut: public Kernel {
-    public:
-        string name()    {return "BFKL_res_kc_full_zcut";}
-        string formula() {return "";}
-        double OffEps(double l, double lp, double z) {return 0}
-        double DiagEps(double l, double lp, double z)  {return 0}
-
-        double OffSub(double l, double lp, double z)  {return 0}
-        double DiagSub(double l, double lp, double z)  {return 0}
-};
-*/
-
-class BFKL_res_kc_v_r_full {
-    public:
-        string name()    {return "BFKL_res_kc_v_r_full";}
-        string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z) {return 0;}
-
-        static double OffSub(double l, double lp, double z);
-        static double DiagSub(double l, double lp, double z);
-        static double zDiagSub(double l, double lp, double z) {return 0;}
-};
-
-
-class BFKL_res_DGLAP {
-    public:
-        string name()    {return "BFKL_res_DGLAP";}
-        string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z);
-
-        static double OffSub(double l, double lp, double z) {return NotImpleneted();}
-        static double DiagSub(double l, double lp, double z) {return NotImpleneted();}
-        static double zDiagSub(double l, double lp, double z) {return NotImpleneted();}
-};
-
-
-class BFKL_res_kc_full_DGLAP {
-    public:
-        string name()    {return "BFKL_res_kc_full_DGLAP";}
-        string formula() {return "";}
-        static double OffEps(double l, double lp, double z);
-        static double DiagEps(double l, double lp, double z);
-        static double zDiagEps(double l, double lp, double z);
-
-        static double OffSub(double l, double lp, double z) {return NotImpleneted();}
-        static double DiagSub(double l, double lp, double z) {return NotImpleneted();}
-        static double zDiagSub(double l, double lp, double z) {return NotImpleneted();}
+    printKernel(BFKLplain)
+    printKernel(BFKL)
+    printKernel(BFKL_res)
+    printKernel(BFKL_res_kc_simp)
+    printKernel(BFKL_res_kc_v_r_simp)
+    printKernel(BFKL_res_kc_full)
+    printKernel(BFKL_res_kc_v_r_full)
+    printKernel(BFKL_res_DGLAP)
+    printKernel(BFKL_res_kc_full_DGLAP)
 };
 
 #endif

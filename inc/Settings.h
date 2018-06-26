@@ -14,12 +14,12 @@ using namespace std;
 
 struct Settings {
 
-    double asMZ = 0.2;
+    double asMZ = 0.118;
     double LnFreeze2 = 2*log(1);
     double eps = 1e-7;
-    int Nint; // kT nodes in Nintegral
-    int N;// = 32*16 + 1; //must be 2*n+1
-    int Nrap = 1024;
+    int Nint = 257; // kT nodes in Nintegral
+    int N = 257;// = 32*16 + 1; //must be 2*n+1
+    int Nrap = 513;
     bool bkSolverGrid = false;
     bool toTrivial = true;
 
@@ -28,6 +28,7 @@ struct Settings {
     double mu2 = 1e-2;
     double rapMax = log(1e6), rapMin = log(1);
     bool putZero = false;
+    bool withMPI = false;
 
     string inputDir, outputDir;
 
@@ -37,10 +38,13 @@ struct Settings {
     int nPar;
     double (*fitFun)(double kT2, double x, const double *p);
 
+    Settings() {}
+
     static Settings & I() {
         static Settings instance;
         return instance;
     }
+    Settings(istream &Stream) {Init(Stream); }
 
     void Init(istream &Stream) {
 
@@ -129,7 +133,7 @@ struct Settings {
         cout << "xMax = " << exp(-rapMin) << endl;
 
         cout << "Nrap = " << Nrap << endl;
-        cout << "N = " << N << endl;
+        cout << "Nkt = " << N << endl;
         cout << "bkSolverGrid = " << bkSolverGrid << endl;
 
         //exit(1);
