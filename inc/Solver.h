@@ -79,12 +79,9 @@ struct Nodes {
         }
         */
 
-        cout << "I am here " <<__LINE__<< endl;
         //Classical nodes ala Clenshaw–Curtis
         if(!bkSolverMode) {
-        cout << "I am here " <<__LINE__<< " "<< N<< endl;
             xi.resize(N);
-        cout << "I am here " <<__LINE__<< endl;
             for(int i = 0; i < N; ++i) {
               double Cos = cos(i /(N-1.) * M_PI);
               xi[i] = (a + b +  Cos * (a-b) )/2.;
@@ -92,7 +89,6 @@ struct Nodes {
             }
             wi = GetWeights(N);
             for(auto &w : wi) w *= (b-a)/2.;
-        cout << "I am here " <<__LINE__<< endl;
 
         }
         //Nodes used in BKsolver
@@ -151,160 +147,35 @@ struct Nodes {
 
 
 struct Solver {
-    double asMZ = 0.2;
-    double LnFreeze2 = 2*log(1);
-    double eps = 1e-7;
-    int Nint = 513; // kT nodes in Nintegral
-    int N = 513;// = 32*16 + 1; //must be 2*n+1
-    int Nrap = 513;
-    bool toTrivial = true;
-
-    double Lmin= log(1e-2), Lmax = log(1e6);
-    //const double Lmin= log(1e-4), Lmax = log(1e8);
-    double mu2 = 1e-2;
-    double rapMax = log(1e6), rapMin = log(1);
-    bool putZero = true;
+    Settings S;
     bool withMPI = false;
 
-    string inputDir, outputDir;
 
     Nodes nod, nodBase;
 
     double alphaS(double l, double lp);
     
+    /*
     Solver(int N_) : Nint(1*(N_-1)+1), N(N_),
         nod(Nint, Lmin, Lmax), nodBase(N, Lmin, Lmax) {
         nod.CalcNodes(false);
         nodBase.CalcNodes(false);
         tie(redMat,extMat) = GetTransMatrices(N, Nint, toTrivial);
     }
+    */
 
+    Solver(Settings SS) {
+        SS.Recalculate();
+        S = SS;
 
-    Solver(Settings S) {
-
-
-        /*
-        boost::property_tree::ptree tree;
-        boost::property_tree::ini_parser::read_ini(Stream, tree);
-
-        bool bkSolverGrid;
-        try {
-
-            asMZ = tree.get<double>("Constants.alphaS");
-            LnFreeze2 = 2*log(tree.get<double>("Constants.freezingScale"));
-
-            eps = tree.get<double>("Constants.eps");
-            mu2 = tree.get<double>("Constants.mu2");
-            //Rapidity properties
-            Nrap = tree.get<int>("RapiditySpace.Nrap");
-            rapMax = -log( tree.get<double>("RapiditySpace.xMin") );
-            rapMin = -log( tree.get<double>("RapiditySpace.xMax") );
-
-
-            //Transverse properties
-            N = tree.get<int>("TransverseSpace.NkT2");
-            Nint = tree.get<int>("TransverseSpace.NkT2int");
-            Lmin = log( tree.get<double>("TransverseSpace.kT2Min") );
-            Lmax = log( tree.get<double>("TransverseSpace.kT2Max") );
-            bkSolverGrid = tree.get<bool>("TransverseSpace.bkSolverGrid");
-            toTrivial = tree.get<bool>("TransverseSpace.toTrivial");
-
-            inputDir  = tree.get<string>("Files.inputDir");
-            outputDir = tree.get<string>("Files.outputDir");
-            
-            //Fit Properties
-            string funStr = tree.get<string>("Fit.function");
-            bool isDone = false;
-            int nPar = 0;
-            for(int i = 0; i < 9; ++i)
-                if(funStr.find("p["+to_string(i)+"]") != string::npos) {
-                    ++nPar;
-                    if(isDone) {
-                        cout << "There is a gap between parameters" << endl;
-                        assert(0);
-                    }
-                }
-                else {
-                    isDone = true;
-                }
-            for(int i = 0; i < nPar; ++i) {
-                string par = tree.get<string>("Fit.p"+to_string(i));
-                istringstream iss(par);
-                vector<double> pars;
-                double pNow;
-                while(iss >> pNow) pars.push_back(pNow);
-                assert(pars.size() == 1 || pars.size() == 3);
-
-                double p, pmin, pmax;
-                p = pars[0];
-                pmin = pmax = 0;
-                if(pars.size() == 3) {
-                    pmin = pars[1];
-                    pmax = pars[2];
-                }
-
-                cout << "Reading parameter "<< i <<" : " << p << " "<< pmin << " "<< pmax << endl;
-                if(iss.good()) cout << "String is good " << p <<" "<< pmin <<" "<< pmax << endl;
-            }
-            exit(0);
-
-        }
-        catch(const std::exception& e) {
-            cout << "Some of parameters in steering not defined:" << endl;
-            cout << e.what() << endl;
-            exit(1);
-        }
-
-        assert((N - 1) %2 == 0);
-        assert((Nint - 1) %2 == 0);
-
-
-        cout << "Used evolution parameters" << endl;
-        cout << "Rapidity Space" << endl;
-        cout << "xMin = " << exp(-rapMax) << endl;
-        cout << "xMax = " << exp(-rapMin) << endl;
-
-        cout << "Nrap = " << Nrap << endl;
-        cout << "N = " << N << endl;
-        cout << "bkSolverGrid = " << bkSolverGrid << endl;
-
-        //exit(1);
-
-        if(bkSolverGrid) assert(N == Nint);
-        */
-        //Settings::I().Init(Stream);
-        //auto &S = Settings::I();
-
-        asMZ = S.asMZ;
-        LnFreeze2 = S.LnFreeze2;
-        eps = S.eps;
-        Nint = S.Nint; // kT nodes in Nintegral
-        N = S.N;// = 32*16 + 1; //must be 2*n+1
-        Nrap = S.Nrap;
-        bool bkSolverGrid = S.bkSolverGrid;
-        toTrivial = S.toTrivial;
-
-        Lmin = S.Lmin;
-        Lmax = S.Lmax;
-        mu2 = S.mu2;
-        rapMax = S.rapMax;
-        rapMin = S.rapMin;
-
-        putZero = S.putZero;
-
-        inputDir = S.inputDir;
-        outputDir= S.outputDir;
-
-        withMPI = S.withMPI;
-
-        nod.Init(Nint, Lmin, Lmax);
-        nodBase.Init(N, Lmin, Lmax);
-        nod.CalcNodes(bkSolverGrid);
-        nodBase.CalcNodes(bkSolverGrid);
-        tie(redMat,extMat) = GetTransMatrices(N, Nint, toTrivial);
+        nod.Init(S.Nint, S.Lmin, S.Lmax);
+        nodBase.Init(S.N, S.Lmin, S.Lmax);
+        nod.CalcNodes(S.bkSolverGrid);
+        nodBase.CalcNodes(S.bkSolverGrid);
+        tie(redMat,extMat) = GetTransMatrices(S.N, S.Nint, S.toTrivial);
 
         alphaSpline::FixMasses( 1e-8, 4.2,	1e21);
-        alphaSpline::FixParameters(2, asMZ, 5, 91.2);
+        alphaSpline::FixParameters(2, S.asMZ, 5, 91.2);
         //cout << "Radek " << alphaSpline::alphaS(2*log(91.2))<< endl;
 
         InitF([](double x, double kT2) {
@@ -332,75 +203,42 @@ struct Solver {
     gpuBooster gpu;
 #endif
 
-    pair<double,double> GetKerPar(double l, double lp);
-    double Delta(double z, double k2, double q2);
 
-    double KernelBFKLDiag(double l, double lp, double z);
-    double KernelBFKL(double l, double lp, double z);
-    //Equation 79
-    double Kernel79(double l, double lp, double z);
-    double Kernel79Diag(double l, double lp, double z);
-    double Kernel80(double l, double lp, double z);
-    double Kernel80Diag(double l, double lp, double z);
-    double Kernel81(double l, double lp, double z);
-    double Kernel81Diag(double l, double lp, double z);
-    double Kernel83(double l, double lp, double z);
-    double Kernel83Diag(double l, double lp, double z);
-    double Kernel84(double l, double lp, double z);
-    double Kernel84Diag(double l, double lp, double z);
-
-    double DGLAPterm(double l, double lp, double z);
-
-    double Kernel85(double l, double lp, double z);
-    double Kernel85Diag(double l, double lp, double z);
-    double Kernel85zDiag(double l, double lp, double x);
-
-    double Kernel86(double l, double lp, double z);
-    double Kernel86Diag(double l, double lp, double z);
-    double Kernel86zDiag(double l, double lp, double x);
-
-
-    double Kernel87(double l, double lp, double z);
-    double Kernel87Diag(double l, double lp, double z);
-    double Kernel88(double l, double lp, double z); //TODO not finish
-
-    double KernelSub79(double l, double lp, double z);
-    double KernelSub79Diag(double l, double lp, double z);
-    double KernelSub80(double l, double lp, double z);
-    double KernelSub80Diag(double l, double lp, double z);
-    double KernelSub81(double l, double lp, double z);
-    double KernelSub81Diag(double l, double lp, double z);
-    double KernelSub83(double l, double lp, double z);
-    double KernelSub83Diag(double l, double lp, double z);
-    double KernelSub84(double l, double lp, double z);
-    double KernelSub84Diag(double l, double lp, double z);
-    double KernelSub87(double l, double lp, double z);
-    double KernelSub87Diag(double l, double lp, double z);
-
-    double KernelSub88(double l, double lp, double z);
-
-    double DGLAPtermSimp(double l, double lp, double z);
-    double Kernel9(double l, double lp, double z);
-    double Kernel9Diag(double l, double lp, double z);
-    double Kernel9zDiag(double l, double lp, double z);
-
-
-    void InitMat();
+    void CalcEvolKernel();
     void SetSolution(function<double(double, double)> fun);
+
+
 
     void SaveEvolKernels(string file) {
         //string aStag = to_string(1000*asMZ);
         //file += "_as"+ to_string(lrint(1000*asMZ));
         cout << "Saving Evol Kernels to " << file << endl;
-        matN.save(file+"/kernel_base.h5", arma::hdf5_binary);
-        matNDiag.save(file+"/kernel_diag.h5", arma::hdf5_binary);
-        matNInv.save(file+"/kernel_inv.h5", arma::hdf5_binary);
+        //matN.save(file+"/kernel_base.h5", arma::hdf5_binary);
+        //matNDiag.save(file+"/kernel_diag.h5", arma::hdf5_binary);
+        //matNInv.save(file+"/kernel_inv.h5", arma::hdf5_binary);
+
+        matN.save(arma::hdf5_name(file, "kernel"));
+        matNDiag.save(arma::hdf5_name(file, "diag", arma::hdf5_opts::append));
+        matNInv.save(arma::hdf5_name(file, "inv", arma::hdf5_opts::append));
+        S.SaveToFile(file);
     }
+
+
     void LoadEvolKernels(string file) {
-        matN.load(file+"/kernel_base.h5", arma::hdf5_binary);
-        matNDiag.load(file+"/kernel_diag.h5", arma::hdf5_binary);
-        cout << "RADEK size " << matNDiag.slice(0).n_rows << endl;
-        matNInv.load(file+"/kernel_inv.h5", arma::hdf5_binary);
+        //matN.load(file+"/kernel_base.h5", arma::hdf5_binary);
+        //matNDiag.load(file+"/kernel_diag.h5", arma::hdf5_binary);
+        //cout << "RADEK size " << matNDiag.slice(0).n_rows << endl;
+        //matNInv.load(file+"/kernel_inv.h5", arma::hdf5_binary);
+        matN.load(arma::hdf5_name(file, "kernel"));
+        matNDiag.load(arma::hdf5_name(file, "diag"));
+        matNInv.load(arma::hdf5_name(file, "inv"));
+        cout << "Load sizes " << matN.n_slices <<" "<< matNDiag.n_slices << endl;
+        if(matN.n_slices == 0) {
+            cout << "Problems with reading EvolKernels from file " << file << endl;
+            assert(0);
+        }
+        S.LoadFromFile(file);
+
     }
 
     void LoadConvKernels(string file) {
@@ -422,7 +260,7 @@ struct Solver {
     arma::vec IterSolution(const arma::mat &Mat, double factor, const arma::vec &y);
 
 
-    void EvolveNew();
+    void EvolveAll();
     void CalcF2L();
     void DoIteration();
     void RunIterations(int Niter, bool init = true);

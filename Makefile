@@ -25,7 +25,7 @@ endif
 
 
 CC=mpic++ #MPI compiler
-myFlags=-std=c++11 -O3 -g -fopenmp 
+myFlags=-std=c++11 -O2 -g -fopenmp 
 
 
 ifeq ($(strip $(hasGPU)),true)
@@ -42,8 +42,8 @@ GSL=-lgsl  -lgslcblas
 	#g++ -g -O3 $(CFLAGS)  $^ $(LIBS) -lgsl -lgslcblas -fopenmp -o $@ 
 
 
-SRCS = src/Solver.cpp  src/iterate.cpp src/kernels.cpp src/main.cpp src/integration.cpp src/Fitter.cpp src/alphaSpline.cpp src/Spline.cpp src/newKernels.cpp 
-OBJS = obj/Solver.o obj/iterate.o obj/kernels.o  obj/integration.o  obj/Fitter.o obj/alphaSpline.o obj/Spline.o  obj/newKernels.o
+SRCS = src/Solver.cpp  src/iterate.cpp  src/main.cpp src/integration.cpp src/Fitter.cpp src/alphaSpline.cpp src/Spline.cpp src/newKernels.cpp 
+OBJS = obj/Solver.o obj/iterate.o   obj/integration.o  obj/Fitter.o obj/alphaSpline.o obj/Spline.o  obj/newKernels.o
 ifeq ($(strip $(hasGPU)),true)
 	OBJS += obj/gpuBooster.o
 endif
@@ -67,4 +67,4 @@ obj/gpuBooster.o: src/gpuBooster.cxx
 	 $(CUDAcompiler) -arch=sm_52 -ccbin g++ -I./inc -I$(CUDAbase)/samples/common/inc/ -I$(armaInc) -DARMA_DONT_USE_WRAPPER  -m64  -Xcompiler  -fopenmp    -std=c++11  -o obj/gpuBooster.o -c src/gpuBooster.cxx
 
 clean:
-	rm obj/*.o bkEvol
+	rm obj/*.o bkEvol bkevol.so

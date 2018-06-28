@@ -24,7 +24,7 @@ class Fitter {
 
     public:
 
-    Fitter() : solver(512+1) {}
+    //Fitter() : solver(512+1) {}
     Fitter(istream &Stream): solver(Stream)  {}
     vector<dataPoint> LoadData(string fname);
 

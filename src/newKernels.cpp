@@ -81,7 +81,7 @@ double Kernel::alphaS(double l, double lp)
     //const double LnFreeze2 =  Settings::I().LnFreeze2;
     double LnQ2 = max(2*log(l), LnFreeze2); //Currently select l as scale
 
-    cout << "LnQ2 " << LnQ2 << endl;
+    //cout << "LnQ2 " << LnQ2 << endl;
     //cout << "LnFreeze2 " << LnFreeze2 <<" "<< alphaSpline::alphaS(LnQ2, 4)<<    endl;
     return alphaSpline::alphaS(LnQ2, 4) * 3./M_PI;
 }
@@ -653,20 +653,18 @@ double BFKL_res_kc_full_DGLAP::zDiagEps(double l, double lp, double x)
 
 double Kernel::BFKLplain__OffSub(double l, double lp, double z)
 {
-    return 0;
     double as = alphaS(l, lp);
-    assert(!isnan(as));
+    //assert(!isnan(as));
     if(l == lp) return 0;
     double Exp = l*l / (lp*lp);
-    assert(!isnan(Exp));
+    //assert(!isnan(Exp));
     double res = as / (abs(1 - Exp));
-    assert(!isnan(res));
+    //assert(!isnan(res));
     return res;
 }
 
 double Kernel::BFKLplain__DiagSub(double l, double lp, double z)
 {
-    return 0;
     double as = alphaS(l, lp);
     double Exp = l*l / (lp*lp);
     double resSing = 0;
@@ -700,10 +698,15 @@ double Kernel::BFKLplain__zDiagEps(double, double, double)
 double Kernel::BFKL__OffEps(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
+    //assert(isfinite(as));
     double ker, par;
     tie(ker, par) = GetKerPar(l, lp);
 
     double Int = 2 * IntegralCos(par, M_PI);
+
+    //assert(isfinite(Int));
+    //assert(isfinite(ker));
+
     return as * ker *  Int; 
 }
 
@@ -719,6 +722,8 @@ double Kernel::BFKL__DiagEps(double l, double lp, double z)
     double angleMax = acos(lp/(2.*l));
     
     double Int = 2 * IntegralCos(par, angleMax);
+
+
     return -as * ker * Int;
 
 }

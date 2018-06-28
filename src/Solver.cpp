@@ -28,7 +28,7 @@ struct KernelPtr {
 
 
 //--------------------------------------------------------------------
-void Solver::InitMat()
+void Solver::CalcEvolKernel()
 {
     /*
     int provided;
@@ -45,18 +45,17 @@ void Solver::InitMat()
 
     //matN.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
     //matNDiag.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
-    //inputDir
 
     alphaSpline::FixMasses( 1e-8, 4.2,	1e21);
-    alphaSpline::FixParameters(2, asMZ, 5, 91.2);
+    alphaSpline::FixParameters(2, S.asMZ, 5, 91.2);
 
     Kernel ker;
-    ker.mu2 = mu2;
-    ker.rapMin = rapMin;
-    ker.rapMax = rapMax;
-    ker.Nrap = Nrap;
-    ker.putZero = putZero;
-    ker.LnFreeze2 = LnFreeze2;
+    ker.eps = S.eps;
+    ker.mu2 = S.mu2;
+    ker.rapMin = S.rapMin;
+    ker.rapMax = S.rapMax;
+    ker.Nrap = S.Nrap;
+    ker.LnFreeze2 = S.LnFreeze2;
 
 
     map<string,KernelPtr> kerMap;
@@ -78,58 +77,59 @@ void Solver::InitMat()
         cout << el.first << endl;
     }
 
-    string name =  inputDir;
+    string name =  S.kernelType;
 
-    string base = inputDir.substr(0, inputDir.find(':'));
+    string base = S.kernelType.substr(0, S.kernelType.find(':'));
     if(!kerMap.count(base)) {
         cout << "Kernel "<<base<< " is not implemented\nExiting" << endl;
         exit(1);
     }
+    cout << "Using kernel " << base << endl;
 
     FUNker KernelOff, KernelDiag, KernelzDiag;
-    if(inputDir.find(":eps") != string::npos) {
+    if(S.kernelType.find(":eps") != string::npos) {
         KernelOff  = kerMap[base].OffEps;
         KernelDiag = kerMap[base].DiagEps;
         KernelzDiag= kerMap[base].zDiagEps;
     }
-    else if(inputDir.find(":sub") != string::npos) {
+    else if(S.kernelType.find(":sub") != string::npos) {
         KernelOff  = kerMap[base].OffSub;
         KernelDiag = kerMap[base].DiagSub;
         KernelzDiag= kerMap[base].zDiagSub;
     }
     else {
-        cout << "The kernel+tag \""<< inputDir << "\" not implemented\nExiting" << endl;
+        cout << "The kernel+tag \""<< S.kernelType << "\" not implemented\nExiting" << endl;
         exit(0);
     }
 
 
-    matN.zeros( N, N, Nrap);
-    matNDiag.zeros( N, N, Nrap);
-    matNInv.zeros( N, N, Nrap);
+    matN.zeros( S.N, S.N, S.Nrap);
+    matNDiag.zeros( S.N, S.N, S.Nrap);
+    matNInv.zeros( S.N, S.N, S.Nrap);
 
-    int fac = (Nint-1)/(N-1);
+    int fac = (S.Nint-1)/(S.N-1);
 
     int start, end;
-    tie(start,end) = GetStartEnd(withMPI, 0, Nrap-1);
+    tie(start,end) = GetStartEnd(withMPI, 0, S.Nrap-1);
 
 
 
 
-    cout << "Start+end|nrap " << start <<" "<< end <<"|" << Nrap<< endl;
+    cout << "Start+end|nrap " << start <<" "<< end <<"|" << S.Nrap<< endl;
 
-    double stepY = (rapMax - rapMin) / (Nrap-1);
+    double stepY = (S.rapMax - S.rapMin) / (S.Nrap-1);
     //for(int y = 0; y < Nrap; ++y) { 
     for(int y = start; y <= end; ++y) { 
-        double rap = rapMin + stepY * y;
+        double rap = S.rapMin + stepY * y;
         double z = exp(-rap);
 
-        arma::mat mTemp(Nint,Nint,arma::fill::zeros);
-        arma::mat mDiagTemp(Nint,Nint,arma::fill::zeros);
+        arma::mat mTemp(S.Nint,S.Nint,arma::fill::zeros);
+        arma::mat mDiagTemp(S.Nint,S.Nint,arma::fill::zeros);
         cout << "Matrix init y " << y << endl;
 
 #pragma omp parallel for
-        for(int i = 0; i < Nint; ++i)   //loop over L
-            for(int j = 0; j < Nint; ++j) { //loop over L' (integral)
+        for(int i = 0; i < S.Nint; ++i)   //loop over L
+            for(int j = 0; j < S.Nint; ++j) { //loop over L' (integral)
                 double L  = nod.xi[i];
                 double Lp = nod.xi[j];
                 double w = nod.wi[j];
@@ -149,7 +149,7 @@ void Solver::InitMat()
 
                 //matDiag[y][i][j] = Kernel85zDiag(l, lp, z) * w; //Diag-z DGLAP part
 
-                if(!toTrivial || i % fac == 0) {
+                if(!S.toTrivial || i % fac == 0) {
 
                     //mTemp(i,j) += KernelBFKL(l, lp, z) * w;
                     //mTemp(i,i) += KernelBFKLDiag(l, lp, z) * w;
@@ -230,17 +230,22 @@ void Solver::InitMat()
     }
 
     for(int y = start; y <= end; ++y) { 
-        matNInv.slice(y) = inv(arma::mat(N,N,arma::fill::eye) - 0.5*matN.slice(0) -matNDiag.slice(y));
+        if(y == 0) {
+            if(!ker.putZero)
+                matNInv.slice(y) = inv(arma::mat(S.N,S.N,arma::fill::eye) - matNDiag.slice(y));
+        }
+        else
+            matNInv.slice(y) = inv(arma::mat(S.N,S.N,arma::fill::eye) - 0.5*matN.slice(0) -matNDiag.slice(y));
     }
     if(withMPI) MPI_Allreduce(MPI_IN_PLACE, matNInv.memptr(), matNInv.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     cout << "Reduce done" << endl;
 
 
-    putZero = ker.putZero;
+    //putZero = ker.putZero;
 
 
     //cout << matN << endl;
-    cout << matNInv << endl;
+    //cout << matNInv << endl;
 
 
 
@@ -293,9 +298,14 @@ void Solver::InitMat()
 
 
 //--------------------------------------------------------------------
-void Solver::EvolveNew()
+void Solver::EvolveAll()
 {
-    const double stepY = (rapMax - rapMin) / (Nrap-1);
+    //const double stepY = (rapMax - rapMin) / (Nrap-1);
+
+    cout << "Sizes " << matN.n_slices <<" "<< matNDiag.n_slices << endl;
+    assert(matN.n_slices == matNDiag.n_slices);
+    int Nrap = matN.n_slices;
+    int N = matNDiag.slice(0).n_rows;
 
     F2rap.resize(Nrap);
     FLrap.resize(Nrap);
@@ -323,13 +333,17 @@ void Solver::EvolveNew()
     //Classical approach
     if(start == 0) {
         cout << "Size of matrixes " << N <<" : "<< matNDiag.slice(0).n_rows <<" "<< matNDiag.slice(0).n_cols <<  endl;
+        /*
         arma::mat MatEq = arma::mat(N,N,arma::fill::eye) -  matNDiag.slice(0);
         cout << "Is put Zero " << putZero << endl;
         if(putZero) {
             PhiRapN[0] = arma::vec(N, arma::fill::zeros);
         }
-        else
+        else {
             PhiRapN[0] = GetLinSolution(MatEq, Phi0N[0]);
+        }
+        */
+        PhiRapN[0] =  matNInv.slice(0) * Phi0N[0];
 
         F2rap[0].zeros(convF2.n_rows);
         FLrap[0].zeros(convFL.n_rows);
@@ -388,8 +402,8 @@ void Solver::EvolveNew()
         //yTemp = stepY * yTemp + Phi0N[y];
         yTemp += Phi0N[y];
 
-        cout << "radek "<< y << endl;
-        cout << yTemp << endl;
+        //cout << "radek "<< y << endl;
+        //cout << yTemp << endl;
 
         if(y % 100 == 0)
             cout <<"Rap point " << y << endl;
@@ -438,11 +452,11 @@ void Solver::EvolveNew()
 //--------------------------------------------------------------------
 void Solver::CalcF2L()
 {
-    F2rap.resize(Nrap);
-    FLrap.resize(Nrap);
+    F2rap.resize(S.Nrap);
+    FLrap.resize(S.Nrap);
     F2rap[0] = arma::vec(convF2.n_rows, arma::fill::zeros);
     FLrap[0] = arma::vec(convFL.n_rows, arma::fill::zeros);
-    for(int y = 1; y < Nrap; ++y) {
+    for(int y = 1; y < S.Nrap; ++y) {
         //kT spectrum for particular bin y
         //Starting point of evol with 0.5 (Trapezius)
         F2rap[y] = 0.5*(convF2.slice(y) * PhiRapN[0] + convF2.slice(0) * PhiRapN[y]);
@@ -464,15 +478,15 @@ void Solver::CalcF2L()
 //--------------------------------------------------------------------
 void Solver::DoIteration()
 {
-    const double stepY = (rapMax - rapMin) / (Nrap-1);
+    //const double stepY = (rapMax - rapMin) / (Nrap-1);
 
     //vector<vector<double>> PhiRapNew(Nrap);
-    vector<arma::vec> PhiRapNew(Nrap);
+    vector<arma::vec> PhiRapNew(S.Nrap);
 
 
     PhiRapNew[0] = Phi0N[0] + matNDiag[0] * PhiRapN[0];
 
-    for(int y = 1; y < Nrap; ++y) {
+    for(int y = 1; y < S.Nrap; ++y) {
 
         //kT spectrum for particular bin y
         //Starting point of evol with 0.5 (Trapezius)
@@ -509,7 +523,7 @@ void Solver::RunIterations(int Niter, bool init)
     for(int i = 0; i < Niter; ++i) {
         DoIteration();
         cout << "Iteration " << i <<" done." << endl;
-        cout << "Phi[kT0] = " << PhiRapN[Nrap-1](0) << endl;
+        cout << "Phi[kT0] = " << PhiRapN[S.Nrap-1](0) << endl;
     }
 }
 
@@ -537,35 +551,35 @@ void Solver::Step(double delta) {
 //Function of x and kT2
 //--------------------------------------------------------------------
 void Solver::InitF(function<double(double, double)> fun) {
-    const double stepY = (rapMax-rapMin) / (Nrap-1);
+    const double stepY = (S.rapMax-S.rapMin) / (S.Nrap-1);
 
     //New version
-    Phi0N.resize(Nrap);
-    for(int y = 0; y < Nrap; ++y) {
-        arma::vec temp(Nint);
+    Phi0N.resize(S.Nrap);
+    for(int y = 0; y < S.Nrap; ++y) {
+        arma::vec temp(S.Nint);
         double x = exp(-y*stepY);
-        for(int i = 0; i < Nint; ++i) {
+        for(int i = 0; i < S.Nint; ++i) {
             double kT2 = exp(nod.xi[i]);
             temp(i) = fun(x, kT2);
         }
         Phi0N[y] = redMat * temp;
     }
 
-    PhiRapN.resize(Nrap, arma::vec(N, arma::fill::zeros));
+    PhiRapN.resize(S.Nrap, arma::vec(S.N, arma::fill::zeros));
 }
 
 //SetSolution of x and kT2
 //--------------------------------------------------------------------
 void Solver::SetSolution(function<double(double, double)> fun)
 {
-    const double stepY = (rapMax-rapMin) / (Nrap-1);
+    const double stepY = (S.rapMax-S.rapMin) / (S.Nrap-1);
 
     //New version
-    PhiRapN.resize(Nrap);
-    for(int y = 0; y < Nrap; ++y) {
-        arma::vec temp(Nint);
+    PhiRapN.resize(S.Nrap);
+    for(int y = 0; y < S.Nrap; ++y) {
+        arma::vec temp(S.Nint);
         double x = exp(-y*stepY);
-        for(int i = 0; i < Nint; ++i) {
+        for(int i = 0; i < S.Nint; ++i) {
             double kT2 = exp(nod.xi[i]);
             temp(i) = fun(x, kT2);
         }
@@ -581,19 +595,19 @@ void Solver::SetSolution(function<double(double, double)> fun)
 double Solver::Interpolate(double y, double L)
 {
 
-    y = max(y, rapMin);
-    y = min(y, rapMax);
+    y = max(y, S.rapMin);
+    y = min(y, S.rapMax);
 
-    double stepY = (rapMax-rapMin) / (Nrap-1);
-    int yId = (y - rapMin) / stepY;
+    double stepY = (S.rapMax-S.rapMin) / (S.Nrap-1);
+    int yId = (y - S.rapMin) / stepY;
     int LId = 0;
-    for(LId = N-1; LId >= 0; --LId)
+    for(LId = S.N-1; LId >= 0; --LId)
         if(nodBase.xi[LId] <= L) break;
     //--LId;
     LId = max(0, LId);
-    yId = min(Nrap-2, yId);
+    yId = min(S.Nrap-2, yId);
 
-    double yLeft = rapMin + yId*stepY;
+    double yLeft = S.rapMin + yId*stepY;
     double LLeft = nodBase.xi[LId];
     double LRight = nodBase.xi[LId+1];
 
@@ -614,14 +628,14 @@ double Solver::Interpolate(double y, double L)
     assert(L - LLeft >= 0);
     assert(LRight - L >= 0);
 
-    if (yId > Nrap - 2) {
+    if (yId > S.Nrap - 2) {
         cout << "Ahoj " << y << " :  " << yLeft << " "<< yLeft + stepY << endl;
     }
 
-    assert(yId <= Nrap - 2);
+    assert(yId <= S.Nrap - 2);
 
 
-    assert(LId <= N - 2);
+    assert(LId <= S.N - 2);
     assert(yId >= 0);
     assert(LId >= 0);
 
@@ -662,13 +676,13 @@ double Solver::Interpolate(double y, double L)
 //--------------------------------------------------------------------
 void Solver::PrintBaseGrid()
 {
-    double stepY = (rapMax - rapMin) / (Nrap-1);
-    double stepL = (Lmax - Lmin) / (N-1);
+    double stepY = (S.rapMax - S.rapMin) / (S.Nrap-1);
+    double stepL = (S.Lmax - S.Lmin) / (S.N-1);
 
 
-    for(int y = 0; y < Nrap; ++y)
-        for(int l = 0; l < N; ++l) {
-            double yNow = rapMin + y*stepY;
+    for(int y = 0; y < S.Nrap; ++y)
+        for(int l = 0; l < S.N; ++l) {
+            double yNow = S.rapMin + y*stepY;
             double L  = nodBase.xi[l];
 
             double kt2 = exp(L);
@@ -681,7 +695,7 @@ void Solver::PrintBaseGrid()
 //--------------------------------------------------------------------
 void Solver::PrintGrid()
 {
-    double stepY = (rapMax - rapMin) / (Nrap-1);
+    double stepY = (S.rapMax - S.rapMin) / (S.Nrap-1);
 
     //cout <<"Interpolation "<< Interpolate(0, log(1) ) << endl;
     //return;
@@ -708,7 +722,7 @@ void Solver::PrintGrid()
 //--------------------------------------------------------------------
 void Solver::PrintReduce()
 {
-    const double stepY = (rapMax - rapMin) / (Nrap-1);
+    const double stepY = (S.rapMax - S.rapMin) / (S.Nrap-1);
 
     vector<double> q2Arr={0.15, 0.2, 0.25, 0.35, 0.4, 0.5, 0.65, 0.85, 1.2, 1.5, 2, 2.7, 3.5, 4.5,
         6.5, 8.5, 10, 12, 15, 18, 22, 27, 35, 45, 60, 70, 90, 120, 150, 200, 250,
@@ -719,8 +733,8 @@ void Solver::PrintReduce()
     //assert(F2rap.size() == matN.n_slices);
     //assert(FLrap.size() == matN.n_slices);
 
-    for(int rapID = 0; rapID < Nrap; ++rapID) {
-        double rap = rapMin + rapID*stepY;
+    for(int rapID = 0; rapID < S.Nrap; ++rapID) {
+        double rap = S.rapMin + rapID*stepY;
         double x = exp(-rap);
 
         for(int i = 0; i < 46; ++i) {
@@ -744,6 +758,7 @@ void Solver::PrintReduce()
 
 vector<double> Solver::GetRegSolution(const vector<vector<double>> &MatEq, const vector<double> &y, const vector<double> &yReg)
 {
+    int N = S.N;
     //cout 
     arma::mat M(N,N);
     for(int i = 0; i < N; ++i)
@@ -802,7 +817,7 @@ arma::vec Solver::IterSolution(const arma::mat &Mat, double factor, const arma::
         yNow = factor * Mat * yNow;
 
         diff = 0;
-        for(int k = 0; k < N; ++k)
+        for(int k = 0; k < S.N; ++k)
             diff = max(diff, abs(yNow[k]) / (1e-13+abs(yNow(k)) + abs(ySum(k))));
         //cout <<"Diff " <<  i << " "<< diff << endl;
 

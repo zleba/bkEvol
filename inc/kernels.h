@@ -24,7 +24,7 @@ struct Kernel {
     double mu2, eps;
     double rapMin, rapMax;
     int Nrap;
-    bool putZero;
+    bool putZero = false;
     double LnFreeze2;
 
     double alphaS(double l, double lp);

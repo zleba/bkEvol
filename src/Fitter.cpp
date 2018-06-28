@@ -378,7 +378,7 @@ double Fitter::Eval(const double *p)
 
 
     });
-    solver.EvolveNew();
+    solver.EvolveAll();
     AddTheory(solver.F2rap, solver.FLrap);
     int nDF;
     double chi2 = getChi2Corr(nDF);
@@ -425,11 +425,11 @@ void Fitter::CalculateBasis(int nElem, string name)
             //return 1./pow(kT2,1);// pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
             //return p[0]*kT2 * exp(-p[1]*kT2);// * pow(max(0., 0.4-x), 2);
 
-            double t = 2.*(log(kT2)- solver.Lmin) / (solver.Lmax - solver.Lmin) - 1;
+            double t = 2.*(log(kT2)- solver.S.Lmin) / (solver.S.Lmax - solver.S.Lmin) - 1;
             return cos(iEl*acos(t));
 
         });
-        solver.EvolveNew();
+        solver.EvolveAll();
         AddTheory(solver.F2rap, solver.FLrap);
 
         storage(iEl, 0) = Solver::vector2matrix(solver.PhiRapN);

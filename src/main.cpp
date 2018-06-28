@@ -23,8 +23,8 @@ void PlainEvolution()
     //solver.LoadConvKernels("data/eq8gen");
     //solver.LoadEvolKernels("data/eq8gen");
     cout << "Weights calculated " << endl;
-    solver.InitMat();
-    solver.EvolveNew();
+    solver.CalcEvolKernel();
+    solver.EvolveAll();
     solver.PrintBaseGrid();
 
     //solver.SaveEvolKernels("data");
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
     //return 0;
 
     cout << "Matrix initialised" << endl;
-    solver.EvolveNew();
+    solver.EvolveAll();
     //solver.CalcF2L();
 
     cout << "Done " << endl;
@@ -153,8 +153,8 @@ int main(int argc, char **argv)
     MPI_Finalize();
     //solver.PrintGrid();
     return 0;
-    for(int i = 0; i < solver.N; ++i) {
-        const int Nnow = solver.Nrap - 1;
+    for(int i = 0; i < solver.S.N; ++i) {
+        const int Nnow = solver.S.Nrap - 1;
         cout << "Points " <<  exp(0.5*solver.nod.xi[i]) <<" "<< solver.PhiRapN[Nnow](i) << endl;
     }
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
         //return pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
         return 1./pow(kT2,0.25);// pow(1.0/sqrt(kT2) * exp(-pow(log(kT2/(1.*1.)),2)), 4);
     });
-    sol32.InitMat();
+    sol32.CalcEvolKernel();
     */
 
     TGraph *gr512 = new TGraph();

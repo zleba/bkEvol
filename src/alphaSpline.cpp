@@ -198,16 +198,17 @@ Double alphaSpline::alphaS(Double LnQ2, int nfUser)
 	const Double &B1 = b1[nf];
 	const Double &B2 = b2[nf];
 
-    cout << "testOutputaS " << nf<<" "<<B0 <<" "<< B1 <<" "<< B2 << endl;
+    //cout << "testOutputaS " << nf<<" "<<B0 <<" "<< B1 <<" "<< B2 << endl;
 
 	//cout << i << endl;
 	Double LnLambda2 = 2.*LnLambdaSave[nf];
 
-    cout << "LnLmabda2 " << LnLambda2  << endl;
+    //cout << "LnLmabda2 " << LnLambda2  << endl;
 	Double logScale    = LnQ2 - LnLambda2;
 	Double a = 1.  / (B0 * logScale);
 
-    cout << "aS lo " << a << endl;
+    //cout << "aS lo " << a << endl;
+
 	//cout << "RADEK before " << __LINE__ <<" "<< iOrder <<  endl;
 	//NLO
 	if(iOrder == 2) {
