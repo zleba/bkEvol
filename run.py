@@ -36,9 +36,9 @@ S.pars = [(1,2, 3),
           (2,4., 5)]
 
 
-S.printInfo()
-import sys
-sys.exit(0)
+#S.printInfo()
+#import sys
+#sys.exit(0)
 
 kernels = [
  "BFKLplain:sub",
@@ -54,19 +54,19 @@ kernels = [
 
 
 #S.kernelType = "BFKLplain:sub"
-#S.kernelType = "BFKL_res_DGLAP:eps"
+S.kernelType = "BFKL_res_DGLAP:eps"
 
 print S.alphaS
 
 #for k in kernels:
 #S.kernelType = k
 sol = bk.Solver(S)
-#sol.CalcEvolKernel()
+sol.CalcEvolKernel()
 
 #sol.EvolveAll()
 #sol.PrintBaseGrid();
 
 #sol.SaveEvolKernels("testNow.h5")
-sol.LoadEvolKernels("testNow.h5")
+#sol.LoadEvolKernels("testNow.h5")
 sol.EvolveAll()
 sol.PrintBaseGrid();
