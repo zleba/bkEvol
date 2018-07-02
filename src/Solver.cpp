@@ -67,6 +67,7 @@ void Solver::CalcEvolKernel()
     initOne(BFKL_res_kc_v_r_full);
     initOne(BFKL_res_DGLAP);
     initOne(BFKL_res_kc_full_DGLAP);
+    initOne(BFKL_res_kc_full_DGLAP_simp_kc);
 
 
     cout << "Available kernels:" << endl;

@@ -2,12 +2,10 @@
 #include <cassert>
 #include <utility>
 #include <algorithm>
-#include <algorithm>
+#include <tuple>
 
 #include "alphaSpline.h"
 #include "kernels.h"
-
-#include "Settings.h"
 
 #include <iostream>
 
@@ -78,7 +76,6 @@ static double GetAngle(double l, double lp, double cond)
 
 double Kernel::alphaS(double l, double lp)
 {
-    //const double LnFreeze2 =  Settings::I().LnFreeze2;
     double LnQ2 = max(2*log(l), LnFreeze2); //Currently select l as scale
 
     //cout << "LnQ2 " << LnQ2 << endl;
@@ -87,17 +84,23 @@ double Kernel::alphaS(double l, double lp)
 }
 
 
-
-
-int Kernel::getRapIndex(double z)
+double Kernel::getRapIndexReal(double z)
 {
     double rap = -log(z);
     double nStepReal = (rap-rapMin)/(rapMax-rapMin) * (Nrap - 1);
+    return nStepReal;
+}
+
+int Kernel::getRapIndex(double z)
+{
+    //double rap = -log(z);
+    //double nStepReal = (rap-rapMin)/(rapMax-rapMin) * (Nrap - 1);
+
+    double nStepReal = getRapIndexReal(z);
     int nStep = round(nStepReal);
     //cout << "Z is " << z <<" " << nStep  << " "<< nStepReal << endl;
     assert(abs(nStepReal-nStep) < 1e-2);
     
-
     return nStep;
 }
 
@@ -109,17 +112,16 @@ int Kernel::getRapIndex(double z)
 //BFKL_res_DGLAP 
 ////////////////////////////////////////////////
 
+//Return z/6*Pgg - 1 (regular)
 double PggModReg(double z)
 {
     return z*z*(1-z) - (2*z+1);
 }
 
 
-//Return z/6*Pgg - 1
+//Return z/6*Pgg - 1 (singular)
 double Kernel::PggModSing(double z)
 {
-    //double reg = z*z*(1-z) - (2*z+1);
-
     int zId = getRapIndex(z);
     if(zId == 0) return 0;
 
@@ -130,9 +132,10 @@ double Kernel::PggModSing(double z)
     return reg;
 }
 
-double Kernel::DGLAPterm(double l, double lp, double z)
+
+//Get the factor in front of the raw DGLAP term
+double Kernel::DGLAPfactorOld(double l, double lp)
 {
-    const double mu2 = Settings::I().mu2;
     double as = alphaS(l, lp);
     double ker = lp*lp/(2*M_PI) *  1/(l*l); //constant before
 
@@ -147,18 +150,41 @@ double Kernel::DGLAPterm(double l, double lp, double z)
         double angleMin = acos((l*l + lp*lp - mu2) / (2*l*lp));
         Int -= 2 * angleMin;
     }
-    double res = (PggModSing(z) + PggModReg(z)) * as * ker * Int;
+    return as * ker * Int;
+}
 
+double Kernel::DGLAPfactorNew(double l, double lp)
+{
+    double as = alphaS(l, lp);
+    double C = lp*lp / (l*l);
+    if(lp > l) return 0;
+    return as * C;
+}
+
+double Kernel::DGLAPoffOld(double l, double lp, double z)
+{
+    double res = (PggModSing(z) + PggModReg(z)) * DGLAPfactorOld(l, lp);
     return res;
 }
 
-double Kernel::Harmonic(double stepSize, int nStep)
+
+double Kernel::DGLAPoffNew(double l, double lp, double z)
 {
-    double rapNow = 0;
+    double res = (PggModSing(z) + PggModReg(z)) * DGLAPfactorNew(l, lp);
+    return res;
+}
+
+
+
+
+
+double Kernel::Harmonic(double startRap, double stepSize, double a, int nStep) //a > 1 by definition
+{
+    double rapNow = startRap;
     double sum = 0;
     for(int i = 0; i < nStep; ++i, rapNow += stepSize) {
         double z = exp(-rapNow);
-        sum += -z* PggModSing(z) * stepSize;
+        sum += -a*z* PggModSing(a*z) * stepSize;
         //sum += -z/(1-z) * step; (old method)
         //cout << "RADEK " << x <<" "<< z << endl;
     }
@@ -594,11 +620,12 @@ double Kernel::BFKL_res_kc_v_r_full__DiagSub(double l, double lp, double z)
 double Kernel::BFKL_res_DGLAP__OffEps(double l, double lp, double z)
 {
     double res = BFKL__OffEps(l, lp, z);
-    res += DGLAPterm(l, lp, z);
+    res += DGLAPoffOld(l, lp, z);
 
     if(z == 1) {
-        res +=  myDGLAPHelper(l, lp);
+        res +=  DGLAPdiagOld(l, lp);
     }
+
 
     return res;
 }
@@ -609,79 +636,33 @@ double Kernel::BFKL_res_DGLAP__DiagEps(double l, double lp, double z)
     return BFKL__DiagEps(l, lp, z);
 }
 
-double Kernel::myDGLAPHelper(double l, double lp)
+double Kernel::DGLAPdiagOld(double l, double lp)
 {
-    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
-    static double harmSum = Harmonic(stepSize, 3000);
-
-    double as = alphaS(l, lp);
     putZero = true;
-    double ker = lp*lp/(2*M_PI) *  1/(l*l); //constant before
-
-    //q < l
-    if(lp > 2*l) return 0;
-    double angleMax = acos(lp/(2.*l));
-    double Int = 2 * angleMax;
-
-    //q > mu
-    // theta(q2 - mu2) term
-    if(pow(lp-l,2) < mu2) { 
-        double angleMin = acos((l*l + lp*lp - mu2) / (2*l*lp));
-        Int -= 2 * angleMin;
-    }
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    static double harmSum = Harmonic(0., stepSize, 1., 3000);
 
     const int nf = 4;
-    double sum = harmSum;
-
-    sum += (33 - 2*nf) / 36.0;
-
-    double res = as * sum * ker * Int;
-
+    double sum = harmSum + (33 - 2*nf) / 36.0;
+    double res = sum *  DGLAPfactorOld(l, lp);
     return 2*res / stepSize; //for correction for the rapIntegration
-
 }
 
-
-/*
-//Off-diagonal z-diaginal kernel with F(k+q)
-double Kernel::BFKL_res_DGLAP__zDiagEps(double l, double lp, double x)
+double Kernel::DGLAPdiagNew(double l, double lp)
 {
-    return 0;
-
-    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
-    static double harmSum = Harmonic(stepSize, 4900);
-
-    double as = alphaS(l, lp);
     putZero = true;
-    double ker = lp*lp/(2*M_PI) *  1/(l*l); //constant before
-
-    //q < l
-    if(lp > 2*l) return 0;
-    double angleMax = acos(lp/(2.*l));
-    double Int = 2 * angleMax;
-
-    //q > mu
-    // theta(q2 - mu2) term
-    if(pow(lp-l,2) < mu2) { 
-        double angleMin = acos((l*l + lp*lp - mu2) / (2*l*lp));
-        Int -= 2 * angleMin;
-    }
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    static double harmSum = Harmonic(0., stepSize, 1., 3000);
 
     const int nf = 4;
-    double sum = harmSum;
-
-    sum += (33 - 2*nf) / 36.0;
-
-    double res = as * sum * ker * Int;
-
-    return res;
+    double sum = harmSum + (33 - 2*nf) / 36.0;
+    double res = sum *  DGLAPfactorNew(l, lp);
+    return 2*res / stepSize; //for correction for the rapIntegration
 }
-*/
 
-double Kernel::BFKL_res_DGLAP__OffSub(double l, double lp, double z)
-{ return NotImpleneted(); }
-double Kernel::BFKL_res_DGLAP__DiagSub(double l, double lp, double z)
-{ return NotImpleneted(); }
+
+double Kernel::BFKL_res_DGLAP__OffSub(double l, double lp, double z)  { return NotImpleneted(); }
+double Kernel::BFKL_res_DGLAP__DiagSub(double l, double lp, double z) { return NotImpleneted(); }
 
 
 
@@ -695,7 +676,12 @@ double Kernel::BFKL_res_kc_full_DGLAP__OffEps(double l, double lp, double z)
 {
     //Adding normal BFKL
     double res =  BFKL_res_kc_full__OffEps(l, lp, z);
-    res += DGLAPterm(l, lp, z);
+    res += DGLAPoffOld(l, lp, z);
+
+    if(z == 1) {
+        res += DGLAPdiagOld(l, lp);
+    }
+
 
     return res;
 }
@@ -707,7 +693,43 @@ double Kernel::BFKL_res_kc_full_DGLAP__DiagEps(double l, double lp, double z)
 }
 
 
-double Kernel::BFKL_res_kc_full_DGLAP__OffSub(double l, double lp, double z)
-{ return NotImpleneted(); }
-double Kernel::BFKL_res_kc_full_DGLAP__DiagSub(double l, double lp, double z)
-{ return NotImpleneted(); }
+double Kernel::BFKL_res_kc_full_DGLAP__OffSub(double l, double lp, double z)  { return NotImpleneted(); }
+double Kernel::BFKL_res_kc_full_DGLAP__DiagSub(double l, double lp, double z) { return NotImpleneted(); }
+
+
+
+////////////////////////////////////////////////
+//BFKL_res_kc_full_DGLAP_simp_kc
+////////////////////////////////////////////////
+
+
+//Off-diagonal kernel with F(k+q)
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__OffEps(double l, double lp, double z)
+{
+    double res =  Kernel::BFKL_res_kc_v_r_full__OffEps(l, lp, z); //Original term
+    res += DGLAPoffNew(l, lp, z); //simple DGLAP
+
+    if(z == 1) {
+        res +=  DGLAPdiagNew(l, lp); //TODO
+    }
+
+    //Including of the last term
+
+
+    return res;
+}
+
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__DiagEps(double l, double lp, double z)
+{
+    //return 0;
+    return Kernel::BFKL_res_kc_v_r_full__DiagEps(l, lp, z);
+}
+
+
+
+
+
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__OffSub(double l, double lp, double z)  { return NotImpleneted(); }
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__DiagSub(double l, double lp, double z) { return NotImpleneted(); }
+
+

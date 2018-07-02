@@ -16,7 +16,7 @@ S.kT2Max = 1e6
 
 
 S.Nrap = 64
-S.Nrap = 2048
+#S.Nrap = 2048
 S.xMin = 1e-6
 S.xMax = 1
 
@@ -51,11 +51,14 @@ kernels = [
  "BFKL_res_kc_v_r_full:eps", "BFKL_res_kc_v_r_full:sub",
  "BFKL_res_DGLAP:eps",
  "BFKL_res_kc_full_DGLAP:eps",
+ "BFKL_res_kc_full_DGLAP_simp_kc:eps",
 ]
 
 
 #S.kernelType = "BFKLplain:sub"
-S.kernelType = "BFKL_res_DGLAP:eps"
+#S.kernelType = "BFKL_res_DGLAP:eps"
+#S.kernelType = "BFKL_res_kc_full_DGLAP:eps"
+S.kernelType = "BFKL_res_kc_full_DGLAP_simp_kc:eps"
 
 print S.alphaS
 

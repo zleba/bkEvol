@@ -26,14 +26,21 @@ struct Kernel {
     double LnFreeze2;
 
     double alphaS(double l, double lp);
-    double DGLAPterm(double l, double lp, double z);
     pair<double,double> GetKerPar(double l, double lp);
 
+    double DGLAPfactorOld(double l, double lp);
+    double DGLAPfactorNew(double l, double lp);
 
-    double myDGLAPHelper(double l, double lp);
+    double DGLAPoffOld(double l, double lp, double z);
+    double DGLAPoffNew(double l, double lp, double z);
+
+    double DGLAPdiagOld(double l, double lp);
+    double DGLAPdiagNew(double l, double lp);
+
+    double getRapIndexReal(double z);
     int getRapIndex(double z);
     double PggModSing(double z);
-    double Harmonic(double stepSize, int nStep);
+    double Harmonic(double startRap, double stepSize, double a, int nStep);
 
     printKernel(BFKLplain)
     printKernel(BFKL)
@@ -44,6 +51,7 @@ struct Kernel {
     printKernel(BFKL_res_kc_v_r_full)
     printKernel(BFKL_res_DGLAP)
     printKernel(BFKL_res_kc_full_DGLAP)
+    printKernel(BFKL_res_kc_full_DGLAP_simp_kc)
 };
 
 #endif
