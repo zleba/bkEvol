@@ -8,16 +8,14 @@ typedef double (Kernel::*FUNker)(double,double,double);
 double dummy(double,double,double) {return 0;}
 
 struct KernelPtr {
-    FUNker OffEps, DiagEps, zDiagEps;
-    FUNker OffSub, DiagSub, zDiagSub;
+    FUNker OffEps, DiagEps;
+    FUNker OffSub, DiagSub;
 
-    KernelPtr(FUNker Oe, FUNker De, FUNker zDe, FUNker Os, FUNker Ds, FUNker zDs) {
+    KernelPtr(FUNker Oe, FUNker De, FUNker Os, FUNker Ds) {
         OffEps = Oe;
         DiagEps = De;
-        zDiagEps = zDe;
         OffSub = Os;
         DiagSub = Ds;
-        zDiagSub = zDs;
     }
     KernelPtr() {}
 };
@@ -44,7 +42,6 @@ void Solver::CalcEvolKernel()
 
 
     //matN.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
-    //matNDiag.resize(Nrap, arma::mat(N,N,arma::fill::zeros));
 
     alphaSpline::FixMasses( 1e-8, 4.2,	1e21);
     alphaSpline::FixParameters(2, S.asMZ, 5, 91.2);
@@ -59,8 +56,8 @@ void Solver::CalcEvolKernel()
 
 
     map<string,KernelPtr> kerMap;
-#define initOne(name)  kerMap[STRINGIFY(name)] = KernelPtr(&Kernel::name##__OffEps, &Kernel::name##__DiagEps, &Kernel::name##__zDiagEps, \
-                                                           &Kernel::name##__OffSub, &Kernel::name##__DiagSub, &Kernel::name##__zDiagSub);
+#define initOne(name)  kerMap[STRINGIFY(name)] = KernelPtr(&Kernel::name##__OffEps, &Kernel::name##__DiagEps,\
+                                                           &Kernel::name##__OffSub, &Kernel::name##__DiagSub );
     initOne(BFKLplain);
     initOne(BFKL);
     initOne(BFKL_res);
@@ -86,16 +83,14 @@ void Solver::CalcEvolKernel()
     }
     cout << "Using kernel " << base << endl;
 
-    FUNker KernelOff, KernelDiag, KernelzDiag;
+    FUNker KernelOff, KernelDiag;
     if(S.kernelType.find(":eps") != string::npos) {
         KernelOff  = kerMap[base].OffEps;
         KernelDiag = kerMap[base].DiagEps;
-        KernelzDiag= kerMap[base].zDiagEps;
     }
     else if(S.kernelType.find(":sub") != string::npos) {
         KernelOff  = kerMap[base].OffSub;
         KernelDiag = kerMap[base].DiagSub;
-        KernelzDiag= kerMap[base].zDiagSub;
     }
     else {
         cout << "The kernel+tag \""<< S.kernelType << "\" not implemented\nExiting" << endl;
@@ -104,7 +99,6 @@ void Solver::CalcEvolKernel()
 
 
     matN.zeros( S.N, S.N, S.Nrap);
-    matNDiag.zeros( S.N, S.N, S.Nrap);
     matNInv.zeros( S.N, S.N, S.Nrap);
 
     int fac = (S.Nint-1)/(S.N-1);
@@ -124,7 +118,6 @@ void Solver::CalcEvolKernel()
         double z = exp(-rap);
 
         arma::mat mTemp(S.Nint,S.Nint,arma::fill::zeros);
-        arma::mat mDiagTemp(S.Nint,S.Nint,arma::fill::zeros);
         cout << "Matrix init y " << y << endl;
 
 #pragma omp parallel for
@@ -156,7 +149,6 @@ void Solver::CalcEvolKernel()
 
                     mTemp(i,j)     += (ker.*KernelOff)(l, lp, z) * w;
                     mTemp(i,i)     += (ker.*KernelDiag)(l, lp, z) * w;
-                    mDiagTemp(i,j) += (ker.*KernelzDiag)(l, lp, z) * w;
                 
                     if(isnan(mTemp(i,j)))
                         cout <<"Hela "<< (ker.*KernelOff)(l, lp, z) <<" "<< l <<" "<<lp<<" "<< z << endl;
@@ -165,18 +157,13 @@ void Solver::CalcEvolKernel()
 
                     //mTemp(i,j) += Kernel86(l, lp, z) * w;
                     //mTemp(i,i) += Kernel86Diag(l, lp, z) * w;
-                    //mDiagTemp(i,j) += Kernel86zDiag(l, lp, z) * w;
 
                     //mTemp(i,j) += Kernel9(l, lp, z) * w;
                     //mTemp(i,i) += Kernel9Diag(l, lp, z) * w;
-                    //mDiagTemp(i,j) += Kernel9zDiag(l, lp, z) * w;
 
                 }
 
 
-                //mTemp(i,j) += Kernel85(l, lp, z) * w;
-                //mTemp(i,i) += Kernel85Diag(l, lp, z) * w;
-                //mDiagTemp(i,j) = Kernel85zDiag(l, lp, z) * w;
 
                 //Clasicall BFKL
                 /*
@@ -201,7 +188,6 @@ void Solver::CalcEvolKernel()
         //exit(0);
 
         matN.slice(y)     = stepY * redMat * mTemp * extMat;
-        matNDiag.slice(y) = redMat * mDiagTemp * extMat;
 
 
 
@@ -210,7 +196,6 @@ void Solver::CalcEvolKernel()
            for(int i = 0; i < Nint; ++i)  //loop over L
            for(int j = 0; j < Nint; ++j) { //loop over L' (integral)
            double m  = matDiag[y][i][j];
-           double mt = mDiagTemp(i,j);
            assert(isfinite(mat[y][i][j]));
            assert(isfinite(matDiag[y][i][j]));
         //cout << "Ihned "<<y<<" : " <<i<<" "<<j<<" "<< m <<" "<< mt << " "<< 2*(m-mt)/(m+mt) <<endl;
@@ -226,16 +211,15 @@ void Solver::CalcEvolKernel()
     if(withMPI) {
         //Merge things together
         MPI_Allreduce(MPI_IN_PLACE, matN.memptr(), matN.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, matNDiag.memptr(), matNDiag.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     }
 
     for(int y = start; y <= end; ++y) { 
         if(y == 0) {
             if(!ker.putZero)
-                matNInv.slice(y) = inv(arma::mat(S.N,S.N,arma::fill::eye) - matNDiag.slice(y));
+                matNInv.slice(y) = inv(arma::mat(S.N,S.N,arma::fill::eye) );
         }
         else
-            matNInv.slice(y) = inv(arma::mat(S.N,S.N,arma::fill::eye) - 0.5*matN.slice(0) -matNDiag.slice(y));
+            matNInv.slice(y) = inv(arma::mat(S.N,S.N,arma::fill::eye) - 0.5*matN.slice(0) );
     }
     if(withMPI) MPI_Allreduce(MPI_IN_PLACE, matNInv.memptr(), matNInv.n_elem,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     cout << "Reduce done" << endl;
@@ -256,14 +240,12 @@ void Solver::CalcEvolKernel()
 
     //for(int y = 0; y < Nrap; ++y) { 
     //MPI_Allreduce(MPI_IN_PLACE, matN.slice(y).memptr(),N*N,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-    //MPI_Allreduce(MPI_IN_PLACE, matNDiag.slice(y).memptr(),N*N,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
     //}
 
     /*
        for(int y = start; y <=end; ++y) {
        int rank = GetRankSize().first;
        MPI_Bcast(matN[y].memptr(), N*N, MPI_DOUBLE, rank, MPI_COMM_WORLD);
-       MPI_Bcast(matNDiag[y].memptr(), N*N, MPI_DOUBLE, rank, MPI_COMM_WORLD);
        }
        */
 
@@ -275,7 +257,7 @@ void Solver::CalcEvolKernel()
        const double stepY = (rapMax - rapMin) / (Nrap-1);
        for(int i = 0; i < N; ++i)
        for(int j = 0; j < N; ++j) {
-       cout <<"Kernel "<<y<<" : "<< i <<" "<< j <<" "<<setprecision(10)<< matN[y](i,j) <<" "<< matNDiag[y](i,j)<<" "<< stepY<< endl;
+       cout <<"Kernel "<<y<<" : "<< i <<" "<< j <<" "<<setprecision(10)<< matN[y](i,j) <<" "<<  stepY<< endl;
     //cout <<"Kernel "<<y<<" : "<< i <<" "<< j <<" "<<setprecision(10)<< matMPI[y](i,j) <<" "<< matMPIDiag[y](i,j)<<" "<< stepY<< endl;
     }
     }
@@ -302,10 +284,9 @@ void Solver::EvolveAll()
 {
     //const double stepY = (rapMax - rapMin) / (Nrap-1);
 
-    cout << "Sizes " << matN.n_slices <<" "<< matNDiag.n_slices << endl;
-    assert(matN.n_slices == matNDiag.n_slices);
+    cout << "Sizes " << matN.n_slices << endl;
     int Nrap = matN.n_slices;
-    int N = matNDiag.slice(0).n_rows;
+    int N = matN.slice(0).n_rows;
 
     F2rap.resize(Nrap);
     FLrap.resize(Nrap);
@@ -332,7 +313,7 @@ void Solver::EvolveAll()
 
     //Classical approach
     if(start == 0) {
-        cout << "Size of matrixes " << N <<" : "<< matNDiag.slice(0).n_rows <<" "<< matNDiag.slice(0).n_cols <<  endl;
+        cout << "Size of matrixes " << N <<" : "<<   endl;
         /*
         arma::mat MatEq = arma::mat(N,N,arma::fill::eye) -  matNDiag.slice(0);
         cout << "Is put Zero " << putZero << endl;
@@ -484,7 +465,7 @@ void Solver::DoIteration()
     vector<arma::vec> PhiRapNew(S.Nrap);
 
 
-    PhiRapNew[0] = Phi0N[0] + matNDiag[0] * PhiRapN[0];
+    PhiRapNew[0] = Phi0N[0];// + matNDiag[0] * PhiRapN[0];
 
     for(int y = 1; y < S.Nrap; ++y) {
 
@@ -501,7 +482,7 @@ void Solver::DoIteration()
         yTemp = yTemp + Phi0N[y];
 
         //Diag part (=virtual DGLAP term)
-        yTemp += matNDiag.slice(y) * PhiRapN[y];
+        //yTemp += matNDiag.slice(y) * PhiRapN[y];
 
         PhiRapNew[y] = yTemp;
     }

@@ -186,8 +186,8 @@ struct Solver {
 
 
 
-    //vector<arma::mat> matN, matNDiag;
-    arma::cube matN, matNDiag, matNInv;
+    //vector<arma::mat> matN;
+    arma::cube matN, matNInv;
     vector<arma::vec> PhiRapN, Phi0N;
 
     arma::cube convF2, convFL;
@@ -214,11 +214,9 @@ struct Solver {
         //file += "_as"+ to_string(lrint(1000*asMZ));
         cout << "Saving Evol Kernels to " << file << endl;
         //matN.save(file+"/kernel_base.h5", arma::hdf5_binary);
-        //matNDiag.save(file+"/kernel_diag.h5", arma::hdf5_binary);
         //matNInv.save(file+"/kernel_inv.h5", arma::hdf5_binary);
 
         matN.save(arma::hdf5_name(file, "kernel"));
-        matNDiag.save(arma::hdf5_name(file, "diag", arma::hdf5_opts::append));
         matNInv.save(arma::hdf5_name(file, "inv", arma::hdf5_opts::append));
         S.SaveToFile(file);
     }
@@ -226,13 +224,10 @@ struct Solver {
 
     void LoadEvolKernels(string file) {
         //matN.load(file+"/kernel_base.h5", arma::hdf5_binary);
-        //matNDiag.load(file+"/kernel_diag.h5", arma::hdf5_binary);
-        //cout << "RADEK size " << matNDiag.slice(0).n_rows << endl;
         //matNInv.load(file+"/kernel_inv.h5", arma::hdf5_binary);
         matN.load(arma::hdf5_name(file, "kernel"));
-        matNDiag.load(arma::hdf5_name(file, "diag"));
         matNInv.load(arma::hdf5_name(file, "inv"));
-        cout << "Load sizes " << matN.n_slices <<" "<< matNDiag.n_slices << endl;
+        cout << "Load sizes " << matN.n_slices << endl;
         if(matN.n_slices == 0) {
             cout << "Problems with reading EvolKernels from file " << file << endl;
             assert(0);

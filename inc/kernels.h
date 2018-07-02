@@ -16,10 +16,8 @@ struct Kernel {
 
 #define printKernel(name) double name##__OffEps  (double l, double lp, double z); \
                           double name##__DiagEps (double l, double lp, double z); \
-                          double name##__zDiagEps(double l, double lp, double z); \
                           double name##__OffSub  (double l, double lp, double z); \
                           double name##__DiagSub (double l, double lp, double z); \
-                          double name##__zDiagSub(double l, double lp, double z);
 
     double mu2, eps;
     double rapMin, rapMax;
@@ -30,6 +28,12 @@ struct Kernel {
     double alphaS(double l, double lp);
     double DGLAPterm(double l, double lp, double z);
     pair<double,double> GetKerPar(double l, double lp);
+
+
+    double myDGLAPHelper(double l, double lp);
+    int getRapIndex(double z);
+    double PggModSing(double z);
+    double Harmonic(double stepSize, int nStep);
 
     printKernel(BFKLplain)
     printKernel(BFKL)
