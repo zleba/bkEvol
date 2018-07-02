@@ -94,7 +94,7 @@ int Kernel::getRapIndex(double z)
     double rap = -log(z);
     double nStepReal = (rap-rapMin)/(rapMax-rapMin) * (Nrap - 1);
     int nStep = round(nStepReal);
-    cout << "Z is " << z <<" " << nStep  << " "<< nStepReal << endl;
+    //cout << "Z is " << z <<" " << nStep  << " "<< nStepReal << endl;
     assert(abs(nStepReal-nStep) < 1e-2);
     
 
@@ -124,8 +124,8 @@ double Kernel::PggModSing(double z)
     if(zId == 0) return 0;
 
     double reg = 1./(1-z);
-    //if(zId == 1) reg *= 2;
-    //else if(zId == 2) reg *= 0.5;
+    if     (zId == 1) reg *= 2;
+    else if(zId == 2) reg *= 0.5;
 
     return reg;
 }
@@ -596,11 +596,8 @@ double Kernel::BFKL_res_DGLAP__OffEps(double l, double lp, double z)
     double res = BFKL__OffEps(l, lp, z);
     res += DGLAPterm(l, lp, z);
 
-    cout << "z is " << z << endl;
     if(z == 1) {
-        cout << "I am iniside radek1 " << res << endl;
         res +=  myDGLAPHelper(l, lp);
-        cout << "I am iniside radek1 " << res << endl;
     }
 
     return res;

@@ -16,6 +16,7 @@ S.kT2Max = 1e6
 
 
 S.Nrap = 64
+S.Nrap = 2048
 S.xMin = 1e-6
 S.xMax = 1
 
