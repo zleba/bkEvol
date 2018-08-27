@@ -1,3 +1,6 @@
+/// Merge the convolutionKernels for different pT slices
+///
+
 #include <armadillo>
 #include <string>
 #include <cassert>
@@ -27,7 +30,6 @@ void MergeFiles(string address, string name)
         for(int i = 0; i < convCube.n_cols; ++i)
         for(int j = 0; j < convCube.n_slices; ++j)
             convCube(qID, i, j) = probe(i, j);
-
     }
     convCube.save(address+name+".h5", arma::hdf5_binary);
     cout <<"Saving to " << address+name+".h5" << endl;
@@ -41,8 +43,6 @@ int main(int argc, char **argv)
 
     MergeFiles(address, "conv_F2");
     MergeFiles(address, "conv_FL");
-
-
 
     return EXIT_SUCCESS;
 }

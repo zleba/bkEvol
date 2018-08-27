@@ -7,19 +7,16 @@ typedef double (Kernel::*FUNker)(double,double,double);
 
 double dummy(double,double,double) {return 0;}
 
-struct KernelPtr {
-    FUNker OffEps, DiagEps;
-    FUNker OffSub, DiagSub;
 
-    KernelPtr(FUNker Oe, FUNker De, FUNker Os, FUNker Ds) {
-        OffEps = Oe;
-        DiagEps = De;
-        OffSub = Os;
-        DiagSub = Ds;
+struct KernelPtr {
+    FUNker Off, Diag;
+
+    KernelPtr(FUNker O, FUNker D) {
+        Off = O;
+        Diag = D;
     }
     KernelPtr() {}
 };
-
 
 
 
@@ -53,21 +50,28 @@ void Solver::CalcEvolKernel()
     ker.rapMax = S.rapMax;
     ker.Nrap = S.Nrap;
     ker.LnFreeze2 = S.LnFreeze2;
-
+    ker.SqrtExpXi = nod.SqrtExpXi;
+    ker.myCheck = arma::mat(ker.SqrtExpXi.size(), ker.SqrtExpXi.size(), arma::fill::zeros);
 
     map<string,KernelPtr> kerMap;
-#define initOne(name)  kerMap[STRINGIFY(name)] = KernelPtr(&Kernel::name##__OffEps, &Kernel::name##__DiagEps,\
-                                                           &Kernel::name##__OffSub, &Kernel::name##__DiagSub );
-    initOne(BFKLplain);
-    initOne(BFKL);
-    initOne(BFKL_res);
-    initOne(BFKL_res_kc_simp);
-    initOne(BFKL_res_kc_v_r_simp);
-    initOne(BFKL_res_kc_full);
-    initOne(BFKL_res_kc_v_r_full);
-    initOne(BFKL_res_DGLAP);
-    initOne(BFKL_res_kc_full_DGLAP);
-    initOne(BFKL_res_kc_full_DGLAP_simp_kc);
+
+#define initOne(name,tag)  kerMap[STRINGIFY(name##__##tag)] = KernelPtr(&Kernel::name##__##tag##_Off, &Kernel::name##__##tag##_Diag);
+#define initTwo(name)      initOne(name,Eps); initOne(name,Sub);
+                                                           
+
+    initOne(BFKLplain,Sub);
+    initTwo(BFKL);
+    initTwo(BFKL_res);
+    initTwo(BFKL_res_kc_simp);
+    initTwo(BFKL_res_kc_v_r_simp);
+    initTwo(BFKL_res_kc_full);
+    initTwo(BFKL_res_kc_v_r_full);
+    initOne(BFKL_res_DGLAP,Eps);
+    initOne(BFKL_res_DGLAP,ZEps);
+    initOne(BFKL_res_kc_full_DGLAP,Eps);
+    initOne(BFKL_res_kc_full_DGLAP_simp_kc,Eps);
+    initOne(BFKL_res_kc_full_DGLAP_simp_kc,ZEps);
+    initOne(BFKL_res_kc_full_DGLAP_full_kc,Eps);
 
 
     cout << "Available kernels:" << endl;
@@ -77,26 +81,19 @@ void Solver::CalcEvolKernel()
 
     string name =  S.kernelType;
 
-    string base = S.kernelType.substr(0, S.kernelType.find(':'));
-    if(!kerMap.count(base)) {
-        cout << "Kernel "<<base<< " is not implemented\nExiting" << endl;
+    string base      = S.kernelType.substr(0, S.kernelType.find(':'));
+    string tag       = S.kernelType.substr(S.kernelType.find(':')+1, string::npos);
+    string wholeName = base+"__"+tag;
+    if(!kerMap.count(wholeName)) {
+        cout << "Kernel "<<base<< " with tag "+tag+ " is not implemented\nExiting" << endl;
         exit(1);
     }
-    cout << "Using kernel " << base << endl;
+    cout << "Using kernel " << base <<" with tag "<< tag<< endl;
 
-    FUNker KernelOff, KernelDiag;
-    if(S.kernelType.find(":eps") != string::npos) {
-        KernelOff  = kerMap[base].OffEps;
-        KernelDiag = kerMap[base].DiagEps;
-    }
-    else if(S.kernelType.find(":sub") != string::npos) {
-        KernelOff  = kerMap[base].OffSub;
-        KernelDiag = kerMap[base].DiagSub;
-    }
-    else {
-        cout << "The kernel+tag \""<< S.kernelType << "\" not implemented\nExiting" << endl;
-        exit(0);
-    }
+    //FUNker KernelOff, KernelDiag;
+
+    FUNker KernelOff  = kerMap[wholeName].Off;
+    FUNker KernelDiag = kerMap[wholeName].Diag;
 
 
     matN.zeros( S.N, S.N, S.Nrap);
@@ -207,6 +204,11 @@ void Solver::CalcEvolKernel()
         //if(y == 1) exit(0);
 
     }
+
+    
+    cout << "Check" << endl;
+    cout << ker.myCheck << endl;
+
 
     cout << "Reduce start" << endl;
     if(withMPI) {

@@ -11,7 +11,9 @@ RUN  mkdir /bkevol  &&\
                         libopenblas-dev \
                         libboost-dev \
                         libopenblas-dev \
-     && rm -rf /var/lib/apt/lists/*
+                        python-pip \
+     && pip install pybind11 \
+     && rm -rf /var/lib/apt/lists/* 
 
 #Instal LHAPDF
 WORKDIR /

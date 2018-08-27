@@ -8,8 +8,11 @@
 #include "kernels.h"
 
 #include <iostream>
+#include <armadillo>
 
 using namespace std;
+
+const double regFactor = 0.05;
 
 
 //////////////////////////////////////
@@ -84,14 +87,14 @@ double Kernel::alphaS(double l, double lp)
 }
 
 
-double Kernel::getRapIndexReal(double z)
+double Kernel::getRapIndexReal(double z) const
 {
     double rap = -log(z);
     double nStepReal = (rap-rapMin)/(rapMax-rapMin) * (Nrap - 1);
     return nStepReal;
 }
 
-int Kernel::getRapIndex(double z)
+int Kernel::getRapIndex(double z) const
 {
     //double rap = -log(z);
     //double nStepReal = (rap-rapMin)/(rapMax-rapMin) * (Nrap - 1);
@@ -115,22 +118,54 @@ int Kernel::getRapIndex(double z)
 //Return z/6*Pgg - 1 (regular)
 double PggModReg(double z)
 {
-    return z*z*(1-z) - (2*z+1);
+    if(z <= 1)
+        return z*z*(1-z) - (2*z+1);
+    else
+        return 0;
 }
 
 
 //Return z/6*Pgg - 1 (singular)
-double Kernel::PggModSing(double z)
+double Kernel::PggModSing(double z, double a) const
 {
-    int zId = getRapIndex(z);
-    if(zId == 0) return 0;
+    //int zId = getRapIndex(z);
+    double BreakID = getRapIndexReal(1./a);
+    double dist = getRapIndex(z) - getRapIndexReal(1./a);
+    if(dist < eps) return 0;
 
-    double reg = 1./(1-z);
-    if     (zId == 1) reg *= 2;
-    else if(zId == 2) reg *= 0.5;
+    double reg = 1./(1-a*z);
+    if     (dist < 1 + eps) reg *= 2;
+    else if(dist < 2 + eps) reg *= 0.5;
 
     return reg;
 }
+
+//Return z/6*Pgg - 1 (singular)
+double Kernel::PggModSingEps(double z, double a) const
+{
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    //int zId = getRapIndex(z);
+    double BreakID = getRapIndexReal(1./a);
+    double dist = getRapIndex(z) - getRapIndexReal(1./a);
+
+    return 1./sqrt(pow(1-a*z,2)+eps) * pow(max(0.,1-a*z), regFactor);
+
+
+    if(dist < -eps) { return 0; }
+    if(dist < eps) {z*= exp(-stepSize); }
+
+    double reg = 1./(1-a*z);
+    if(dist < eps) reg *= 1.0;
+
+    //cout << "z " << dist <<" "<<z <<" "<< reg <<  endl;
+
+    return reg;
+}
+
+
+
+
+
 
 
 //Get the factor in front of the raw DGLAP term
@@ -161,9 +196,27 @@ double Kernel::DGLAPfactorNew(double l, double lp)
     return as * C;
 }
 
+double Kernel::DGLAPfactorExtra(double l, double lp, double z, double a)
+{
+    double as = alphaS(l, lp);
+    if(lp <= l) return 0;
+    if(z >= 1./a) return 0;
+    
+    return as;
+}
+
+
+
+
 double Kernel::DGLAPoffOld(double l, double lp, double z)
 {
     double res = (PggModSing(z) + PggModReg(z)) * DGLAPfactorOld(l, lp);
+    return res;
+}
+
+double Kernel::DGLAPoffOldEps(double l, double lp, double z)
+{
+    double res = (PggModSingEps(z) + PggModReg(z)) * DGLAPfactorOld(l, lp);
     return res;
 }
 
@@ -174,22 +227,63 @@ double Kernel::DGLAPoffNew(double l, double lp, double z)
     return res;
 }
 
-
-
-
-
-double Kernel::Harmonic(double startRap, double stepSize, double a, int nStep) //a > 1 by definition
+double Kernel::DGLAPoffNewEps(double l, double lp, double z)
 {
-    double rapNow = startRap;
+    double res = (PggModSingEps(z) + PggModReg(z)) * DGLAPfactorNew(l, lp);
+    return res;
+}
+
+
+double Kernel::DGLAPoffExtra(double l, double lp, double z, double a)
+{
+    double F = DGLAPfactorExtra(l, lp, z, a);
+    if(F == 0) return 0;
+    double res = (PggModSing(z,a) + PggModReg(a*z)) * F;
+    return res;
+}
+
+double Kernel::DGLAPoffExtraEps(double l, double lp, double z, double a)
+{
+    double F = DGLAPfactorExtra(l, lp, z, a);
+    if(F == 0) return 0;
+    double res = (PggModSingEps(z,a) + PggModReg(a*z) *pow(max(0.,1-a*z), regFactor) ) * F;
+    return res;
+}
+
+
+
+
+
+double Kernel::Harmonic(double startRap, double stepSize, double a, int nStep) const //a > 1 by definition
+{
+    //double rapNow = startRap;
     double sum = 0;
-    for(int i = 0; i < nStep; ++i, rapNow += stepSize) {
+    for(int i = 0; i < nStep; ++i) {
+        double rapNow = startRap + i*stepSize;
         double z = exp(-rapNow);
-        sum += -a*z* PggModSing(a*z) * stepSize;
+        sum += -a*z* PggModSing(z,a) * stepSize;
         //sum += -z/(1-z) * step; (old method)
         //cout << "RADEK " << x <<" "<< z << endl;
     }
     return sum;
 }
+
+double Kernel::HarmonicEps(double startRap, double stepSize, double a, int nStep) const //a > 1 by definition
+{
+    //double rapNow = startRap;
+    double sum = 0;
+    for(int i = 0; i < nStep; ++i) {
+        double rapNow = startRap + i*stepSize;
+        double z = exp(-rapNow);
+        double factor = (i == 0) ? 0.5 : 1;
+        sum += -a*z* PggModSingEps(z,a) * stepSize * factor;
+        //sum += -z/(1-z) * step; (old method)
+        //cout << "RADEK " << x <<" "<< z << endl;
+    }
+    cout << "HELENKA " << sum << endl;
+    return sum;
+}
+
 
 
 //////////////////////////////////////////////////////////////////////
@@ -210,7 +304,7 @@ double Kernel::Harmonic(double startRap, double stepSize, double a, int nStep) /
 //BFKLplain
 ///////////////
 
-double Kernel::BFKLplain__OffSub(double l, double lp, double z)
+double Kernel::BFKLplain__Sub_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     //assert(!isnan(as));
@@ -222,7 +316,7 @@ double Kernel::BFKLplain__OffSub(double l, double lp, double z)
     return res;
 }
 
-double Kernel::BFKLplain__DiagSub(double l, double lp, double z)
+double Kernel::BFKLplain__Sub_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     double Exp = l*l / (lp*lp);
@@ -234,14 +328,6 @@ double Kernel::BFKLplain__DiagSub(double l, double lp, double z)
 }
 
 
-double Kernel::BFKLplain__OffEps(double, double, double)
-{return NotImpleneted(); }
-
-double Kernel::BFKLplain__DiagEps(double, double, double)
-{return NotImpleneted(); }
-
-
-
 
 ///////////////
 //BFKL
@@ -249,7 +335,7 @@ double Kernel::BFKLplain__DiagEps(double, double, double)
 
 
 //Form of equation with phi
-double Kernel::BFKL__OffEps(double l, double lp, double z)
+double Kernel::BFKL__Eps_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     //assert(isfinite(as));
@@ -265,7 +351,7 @@ double Kernel::BFKL__OffEps(double l, double lp, double z)
 }
 
 //Form of bfkl with phi
-double Kernel::BFKL__DiagEps(double l, double lp, double z)
+double Kernel::BFKL__Eps_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if(lp > 2*l) return 0;
@@ -284,7 +370,7 @@ double Kernel::BFKL__DiagEps(double l, double lp, double z)
 
 
 //Form of equation with phi
-double Kernel::BFKL__OffSub(double l, double lp, double z)
+double Kernel::BFKL__Sub_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if (l == lp) return 0;
@@ -293,7 +379,7 @@ double Kernel::BFKL__OffSub(double l, double lp, double z)
 }
 
 //Form of bfkl with phi
-double Kernel::BFKL__DiagSub(double l, double lp, double z)
+double Kernel::BFKL__Sub_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     double angleMax = GetAngle(l,lp, l*l);
@@ -314,7 +400,7 @@ double Kernel::BFKL__DiagSub(double l, double lp, double z)
 ///////////////
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res__Eps_Off(double l, double lp, double z)
 {
 
     double as = alphaS(l, lp);
@@ -333,7 +419,7 @@ double Kernel::BFKL_res__OffEps(double l, double lp, double z)
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res__DiagEps(double l, double lp, double z)
+double Kernel::BFKL_res__Eps_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if(lp > 2*l) return 0;
@@ -357,7 +443,7 @@ double Kernel::BFKL_res__DiagEps(double l, double lp, double z)
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res__OffSub(double l, double lp, double z)
+double Kernel::BFKL_res__Sub_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if (l == lp) {
@@ -377,7 +463,7 @@ double Kernel::BFKL_res__OffSub(double l, double lp, double z)
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res__DiagSub(double l, double lp, double z)
+double Kernel::BFKL_res__Sub_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     double angleMax = GetAngle(l,lp, l*l);
@@ -407,7 +493,7 @@ double Kernel::BFKL_res__DiagSub(double l, double lp, double z)
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_simp__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_simp__Eps_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     double ker, par;
@@ -428,15 +514,15 @@ double Kernel::BFKL_res_kc_simp__OffEps(double l, double lp, double z)
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_simp__DiagEps(double l, double lp, double z) {
-    return BFKL__DiagEps(l, lp, z);
+double Kernel::BFKL_res_kc_simp__Eps_Diag(double l, double lp, double z) {
+    return BFKL__Eps_Diag(l, lp, z);
 }
 
 
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_simp__OffSub(double l, double lp, double z)
+double Kernel::BFKL_res_kc_simp__Sub_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     double angleMax = GetAngle(l,lp, l*l/z);
@@ -452,8 +538,8 @@ double Kernel::BFKL_res_kc_simp__OffSub(double l, double lp, double z)
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_simp__DiagSub(double l, double lp, double z) {
-    return BFKL__DiagSub(l, lp, z);
+double Kernel::BFKL_res_kc_simp__Sub_Diag(double l, double lp, double z) {
+    return BFKL__Sub_Diag(l, lp, z);
 }
 
 
@@ -463,27 +549,27 @@ double Kernel::BFKL_res_kc_simp__DiagSub(double l, double lp, double z) {
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_v_r_simp__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_v_r_simp__Eps_Off(double l, double lp, double z)
 {
-    return BFKL_res_kc_simp__OffEps(l, lp, z);
+    return BFKL_res_kc_simp__Eps_Off(l, lp, z);
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_v_r_simp__DiagEps(double l, double lp, double z) {
-    return BFKL_res_kc_simp__DiagEps(l, lp, z);
+double Kernel::BFKL_res_kc_v_r_simp__Eps_Diag(double l, double lp, double z) {
+    return BFKL_res_kc_simp__Eps_Diag(l, lp, z);
 }
 
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_v_r_simp__OffSub(double l, double lp, double z)
+double Kernel::BFKL_res_kc_v_r_simp__Sub_Off(double l, double lp, double z)
 {
-    return BFKL_res_kc_simp__OffSub(l, lp, z);
+    return BFKL_res_kc_simp__Sub_Off(l, lp, z);
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_v_r_simp__DiagSub(double l, double lp, double z) {
-    return BFKL_res_kc_simp__DiagSub(l, lp, z);
+double Kernel::BFKL_res_kc_v_r_simp__Sub_Diag(double l, double lp, double z) {
+    return BFKL_res_kc_simp__Sub_Diag(l, lp, z);
 }
 
 
@@ -493,7 +579,7 @@ double Kernel::BFKL_res_kc_v_r_simp__DiagSub(double l, double lp, double z) {
 ////////////////////////////////////////////////
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_full__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_full__Eps_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     double ker, par;
@@ -513,14 +599,14 @@ double Kernel::BFKL_res_kc_full__OffEps(double l, double lp, double z)
 
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_full__DiagEps(double l, double lp, double z) {
+double Kernel::BFKL_res_kc_full__Eps_Diag(double l, double lp, double z) {
     if(z == 1) return 0;
-    return BFKL__DiagEps(l, lp, z);
+    return BFKL__Eps_Diag(l, lp, z);
 }
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_full__OffSub(double l, double lp, double z)
+double Kernel::BFKL_res_kc_full__Sub_Off(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if(z == 1) return 0;
@@ -539,9 +625,9 @@ double Kernel::BFKL_res_kc_full__OffSub(double l, double lp, double z)
 
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_full__DiagSub(double l, double lp, double z) {
+double Kernel::BFKL_res_kc_full__Sub_Diag(double l, double lp, double z) {
     if(z == 1) return 0;
-    return BFKL__DiagSub(l, lp, z);
+    return BFKL__Sub_Diag(l, lp, z);
 }
 
 
@@ -553,13 +639,13 @@ double Kernel::BFKL_res_kc_full__DiagSub(double l, double lp, double z) {
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_v_r_full__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_v_r_full__Eps_Off(double l, double lp, double z)
 {
-    return Kernel::BFKL_res_kc_full__OffEps(l, lp, z);
+    return Kernel::BFKL_res_kc_full__Eps_Off(l, lp, z);
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_v_r_full__DiagEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_v_r_full__Eps_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if(lp > 2*l) return 0;
@@ -583,13 +669,13 @@ double Kernel::BFKL_res_kc_v_r_full__DiagEps(double l, double lp, double z)
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_v_r_full__OffSub(double l, double lp, double z)
+double Kernel::BFKL_res_kc_v_r_full__Sub_Off(double l, double lp, double z)
 {
-    return Kernel::BFKL_res_kc_full__OffSub(l, lp, z);
+    return Kernel::BFKL_res_kc_full__Sub_Off(l, lp, z);
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_kc_v_r_full__DiagSub(double l, double lp, double z)
+double Kernel::BFKL_res_kc_v_r_full__Sub_Diag(double l, double lp, double z)
 {
     double as = alphaS(l, lp);
     if(z == 1) return 0;
@@ -617,9 +703,9 @@ double Kernel::BFKL_res_kc_v_r_full__DiagSub(double l, double lp, double z)
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_DGLAP__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_DGLAP__Eps_Off(double l, double lp, double z)
 {
-    double res = BFKL__OffEps(l, lp, z);
+    double res = BFKL__Eps_Off(l, lp, z);
     res += DGLAPoffOld(l, lp, z);
 
     if(z == 1) {
@@ -631,10 +717,23 @@ double Kernel::BFKL_res_DGLAP__OffEps(double l, double lp, double z)
 }
 
 //Diagonal kernel with F(k)
-double Kernel::BFKL_res_DGLAP__DiagEps(double l, double lp, double z)
+double Kernel::BFKL_res_DGLAP__Eps_Diag(double l, double lp, double z)
 {
-    return BFKL__DiagEps(l, lp, z);
+    return BFKL__Eps_Diag(l, lp, z);
 }
+
+double Kernel::DGLAPdiagOldEps(double l, double lp)
+{
+    //putZero = true;
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    static double harmSum = HarmonicEps(0., stepSize, 1., 3000);
+
+    const int nf = 4;
+    double sum = harmSum + (33 - 2*nf) / 36.0;
+    double res = sum *  DGLAPfactorOld(l, lp);
+    return 2*res / stepSize; //for correction for the rapIntegration
+}
+
 
 double Kernel::DGLAPdiagOld(double l, double lp)
 {
@@ -654,6 +753,49 @@ double Kernel::DGLAPdiagNew(double l, double lp)
     const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
     static double harmSum = Harmonic(0., stepSize, 1., 3000);
 
+
+    //Cros-check - start
+    int il = -1, ilp = -1;
+    for(int i = 0; i < SqrtExpXi.size(); ++i) {
+       if(SqrtExpXi[i] == l)   il = i;
+       if(SqrtExpXi[i] == lp) ilp = i;
+    }
+    if(il != -1 && ilp != -1) {
+        myCheck(il, ilp) += 2;
+    }
+    else {
+        cout << "Weired" << endl;
+    }
+    //Cros-check - end
+
+    const int nf = 4;
+    double sum = harmSum + (33 - 2*nf) / 36.0;
+    double res = sum *  DGLAPfactorNew(l, lp);
+    return 2*res / stepSize; //for correction for the rapIntegration
+}
+
+double Kernel::DGLAPdiagNewEps(double l, double lp)
+{
+    //putZero = true;
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    static double harmSum = HarmonicEps(0., stepSize, 1., 3000);
+
+    /*
+    //Cros-check - start
+    int il = -1, ilp = -1;
+    for(int i = 0; i < SqrtExpXi.size(); ++i) {
+       if(SqrtExpXi[i] == l)   il = i;
+       if(SqrtExpXi[i] == lp) ilp = i;
+    }
+    if(il != -1 && ilp != -1) {
+        myCheck(il, ilp) += 2;
+    }
+    else {
+        cout << "Weired" << endl;
+    }
+    */
+    //Cros-check - end
+
     const int nf = 4;
     double sum = harmSum + (33 - 2*nf) / 36.0;
     double res = sum *  DGLAPfactorNew(l, lp);
@@ -661,8 +803,93 @@ double Kernel::DGLAPdiagNew(double l, double lp)
 }
 
 
-double Kernel::BFKL_res_DGLAP__OffSub(double l, double lp, double z)  { return NotImpleneted(); }
-double Kernel::BFKL_res_DGLAP__DiagSub(double l, double lp, double z) { return NotImpleneted(); }
+
+
+
+
+
+double Kernel::DGLAPdiagExtra(double l, double lp, double z, double a)
+{
+    putZero = true;
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    static double harmSum = Harmonic(0., stepSize, a, 3000);
+
+    //Cros-check
+    int il = -1, ilp = -1;
+    for(int i = 0; i < SqrtExpXi.size(); ++i) {
+       if(SqrtExpXi[i] == l)   il = i;
+       if(SqrtExpXi[i] == lp) ilp = i;
+    }
+    if(il != -1 && ilp != -1) {
+        ++myCheck(il, ilp);
+    }
+    else {
+        cout << "Weired" << endl;
+    }
+
+    const int nf = 4;
+    double sum = harmSum + (33 - 2*nf) / 36.0;
+    double res = sum *  DGLAPfactorExtra(l, lp, z, a);
+    return 2*res / stepSize; //for correction for the rapIntegration
+}
+
+double Kernel::DGLAPdiagExtraEps(double l, double lp, double z, double a)
+{
+    //putZero = true;
+    const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+    static double harmSum = HarmonicEps(0., stepSize, a, 3000);
+
+    /*
+    //Cros-check
+    int il = -1, ilp = -1;
+    for(int i = 0; i < SqrtExpXi.size(); ++i) {
+       if(SqrtExpXi[i] == l)   il = i;
+       if(SqrtExpXi[i] == lp) ilp = i;
+    }
+    if(il != -1 && ilp != -1) {
+        ++myCheck(il, ilp);
+    }
+    else {
+        cout << "Weired" << endl;
+    }
+    */
+
+    const int nf = 4;
+    double sum = harmSum + (33 - 2*nf) / 36.0;
+    double res = sum *  DGLAPfactorExtra(l, lp, z, a);
+    return /*2**/res / stepSize; //for correction for the rapIntegration
+}
+
+
+
+
+
+
+
+
+
+
+//Off-diagonal kernel with F(k+q)
+double Kernel::BFKL_res_DGLAP__ZEps_Off(double l, double lp, double z)
+{
+    double res = BFKL__Eps_Off(l, lp, z);
+    res += DGLAPoffOldEps(l, lp, z);
+
+    if(z == 1) {
+        res +=  DGLAPdiagOldEps(l, lp);
+    }
+
+
+    return res;
+}
+
+//Diagonal kernel with F(k)
+double Kernel::BFKL_res_DGLAP__ZEps_Diag(double l, double lp, double z)
+{
+    return BFKL__Eps_Diag(l, lp, z);
+}
+
+
 
 
 
@@ -672,10 +899,10 @@ double Kernel::BFKL_res_DGLAP__DiagSub(double l, double lp, double z) { return N
 ////////////////////////////////////////////////
 
 
-double Kernel::BFKL_res_kc_full_DGLAP__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_full_DGLAP__Eps_Off(double l, double lp, double z)
 {
     //Adding normal BFKL
-    double res =  BFKL_res_kc_full__OffEps(l, lp, z);
+    double res =  BFKL_res_kc_full__Eps_Off(l, lp, z);
     res += DGLAPoffOld(l, lp, z);
 
     if(z == 1) {
@@ -686,15 +913,111 @@ double Kernel::BFKL_res_kc_full_DGLAP__OffEps(double l, double lp, double z)
     return res;
 }
 
-double Kernel::BFKL_res_kc_full_DGLAP__DiagEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_full_DGLAP__Eps_Diag(double l, double lp, double z)
 {
     //return 0;
-    return BFKL__DiagEps(l, lp, z);
+    return BFKL__Eps_Diag(l, lp, z);
 }
 
 
-double Kernel::BFKL_res_kc_full_DGLAP__OffSub(double l, double lp, double z)  { return NotImpleneted(); }
-double Kernel::BFKL_res_kc_full_DGLAP__DiagSub(double l, double lp, double z) { return NotImpleneted(); }
+
+
+////////////////////////////////////////////////
+//BFKL_res_kc_full_DGLAP_*_kc
+////////////////////////////////////////////////
+
+
+double Kernel::DGLAPextraCommon(double l, double lp, double z, double a)
+{
+    double res =  Kernel::BFKL_res_kc_v_r_full__Eps_Off(l, lp, z); //Original term
+
+    if(lp <= l) {
+        res += DGLAPoffNew(l, lp, z); //simple DGLAP
+
+        if(z == 1) {
+            res +=  DGLAPdiagNew(l, lp); 
+        }
+    }
+
+    //Including of the last term
+    if(lp > l && 0) {
+        //double a = lp*lp / (l*l);
+        double diff = getRapIndex(z) - getRapIndexReal(1./a);
+
+        if(diff > eps) {
+            res += DGLAPoffExtra(l, lp, z, a); //with real singularity
+
+            if(diff < 1 + eps) {
+                //cout << l << " "< lp << endl;
+                res +=  DGLAPdiagExtra(l, lp, z, a); 
+            }
+        }
+    }
+    return res;
+}
+
+
+double Kernel::DGLAPextraCommonEps(double l, double lp, double z, double a)
+{
+    double res =  Kernel::BFKL_res_kc_v_r_full__Eps_Off(l, lp, z); //Original term
+
+    if(lp <= l) {
+        res += DGLAPoffNewEps(l, lp, z); //simple DGLAP
+
+        if(z == 1) {
+            res +=  DGLAPdiagNewEps(l, lp); 
+        }
+    }
+
+    //Including of the last term
+    if(lp > l && 1 &&  z < 0.1) {
+        int idRap = getRapIndex(z);
+        //double a = lp*lp / (l*l);
+        double diff = getRapIndex(z) - getRapIndexReal(1./a);
+
+        //if(diff > eps) {
+        res += DGLAPoffExtraEps(l, lp, z, a); //with real singularity
+        //}
+
+        
+
+        //Find the maximum the maximum
+        double valMax = -1e20;
+        int zMax = -1;
+        const static double stepSize = (rapMax - rapMin) / (Nrap - 1);
+        for(int i = 0; i <= Nrap; ++i) {
+            double rapNow = rapMin + i*stepSize;
+            double zNow = exp(-rapNow);
+            double valNow = DGLAPoffExtraEps(l, lp, zNow, a);
+            if(valNow > valMax) {
+                zMax = zNow;
+                valMax = valNow;
+            }
+        }
+        if(z == zMax) {
+            double factor = (idRap == 0 || idRap == Nrap) ? 2 : 1;
+            res +=   factor * DGLAPdiagExtraEps(l, lp, z, a); 
+        }
+
+
+        /*
+        if(diff > -1 + eps && diff < 1 - eps) {
+            double f = 1 - abs(diff);
+            double factor = (idRap == 0 || idRap == Nrap) ? 2 : 1;
+            res +=  f * factor * DGLAPdiagExtraEps(l, lp, z, a); 
+        }
+        */
+
+        /*
+        if(diff > eps && diff < 1 + eps) {
+            //cout << l << " "< lp << endl;
+            double factor = (idRap == 0 || idRap == Nrap) ? 2 : 1;
+            res +=  factor * DGLAPdiagExtraEps(l, lp, z, a); 
+        }
+        */
+    }
+    return res;
+}
 
 
 
@@ -704,32 +1027,53 @@ double Kernel::BFKL_res_kc_full_DGLAP__DiagSub(double l, double lp, double z) { 
 
 
 //Off-diagonal kernel with F(k+q)
-double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__OffEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__Eps_Off(double l, double lp, double z)
 {
-    double res =  Kernel::BFKL_res_kc_v_r_full__OffEps(l, lp, z); //Original term
-    res += DGLAPoffNew(l, lp, z); //simple DGLAP
-
-    if(z == 1) {
-        res +=  DGLAPdiagNew(l, lp); //TODO
-    }
-
-    //Including of the last term
-
-
-    return res;
+    double a = lp*lp / (l*l);
+    //cout << "Approximate constraint" << endl;
+    return DGLAPextraCommon(l, lp, z, a);
 }
 
-double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__DiagEps(double l, double lp, double z)
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__Eps_Diag(double l, double lp, double z)
 {
     //return 0;
-    return Kernel::BFKL_res_kc_v_r_full__DiagEps(l, lp, z);
+    return Kernel::BFKL_res_kc_v_r_full__Eps_Diag(l, lp, z);
+}
+
+
+//Off-diagonal kernel with F(k+q)
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__ZEps_Off(double l, double lp, double z)
+{
+    double a = lp*lp / (l*l);
+    //cout << "Approximate constraint" << endl;
+    return DGLAPextraCommonEps(l, lp, z, a);
+}
+
+double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__ZEps_Diag(double l, double lp, double z)
+{
+    //return 0;
+    return Kernel::BFKL_res_kc_v_r_full__Eps_Diag(l, lp, z);
 }
 
 
 
 
+////////////////////////////////////////////////
+//BFKL_res_kc_full_DGLAP_full_kc
+////////////////////////////////////////////////
 
-double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__OffSub(double l, double lp, double z)  { return NotImpleneted(); }
-double Kernel::BFKL_res_kc_full_DGLAP_simp_kc__DiagSub(double l, double lp, double z) { return NotImpleneted(); }
 
+//Off-diagonal kernel with F(k+q)
+double Kernel::BFKL_res_kc_full_DGLAP_full_kc__Eps_Off(double l, double lp, double z)
+{
+    double a = lp*lp / (l*l) + 1;
+    //cout << "Full constraint" << endl;
+    return DGLAPextraCommon(l, lp, z, a);
+}
+
+double Kernel::BFKL_res_kc_full_DGLAP_full_kc__Eps_Diag(double l, double lp, double z)
+{
+    //return 0;
+    return Kernel::BFKL_res_kc_v_r_full__Eps_Diag(l, lp, z);
+}
 

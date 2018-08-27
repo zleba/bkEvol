@@ -26,7 +26,6 @@ struct SETTINGS {
 
     double Lmin= log(1e-2), Lmax = log(1e6);
     double rapMax = log(1e6), rapMin = log(1);
-    string inputDir, outputDir;
     
 
     void Init(istream &Stream) {
@@ -47,8 +46,6 @@ struct SETTINGS {
             Lmin = log( tree.get<double>("TransverseSpace.kT2Min") );
             Lmax = log( tree.get<double>("TransverseSpace.kT2Max") );
 
-            inputDir  = tree.get<string>("Files.inputDir");
-            outputDir = tree.get<string>("Files.outputDir");
         } catch(const std::exception& e) {
             cout << "Some of parameters in steering not defined:" << endl;
             cout << e.what() << endl;

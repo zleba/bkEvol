@@ -278,7 +278,8 @@ struct Settings {
 
         
         WriteFunction(str);
-        system(("g++ fitFun.cpp -o " + n + " -shared -fPIC").c_str());
+        int st = system(("g++ fitFun.cpp -o " + n + " -shared -fPIC").c_str());
+        assert(st >= 0);
         //system("sleep 5");
         void *lib = dlopen(n.c_str(), RTLD_LAZY);
         assert(lib);
