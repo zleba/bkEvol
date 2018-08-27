@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "TH2D.h"
+#include "TFile.h"
 
 using namespace std;
 
@@ -43,10 +44,18 @@ TH2D *FillEqMat(long long Ncheb, long long nSplit, long long nNow)
     return hEqMat;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    long long nSplit = 1, nNow = 0;
+    
+    if(argc >= 2) nSplit = atoi(argv[1]);
+    if(argc >= 3) nNow   = atoi(argv[2]);
 
-    FillEqMat(5, 10, 0);
+    TFile *file = TFile::Open("sol.root", "RECREATE");
+    TH2D *hEqMat = FillEqMat(3, nSplit, nNow);
+    file->Write();
+    file->Close();
+    
 
     return 0;
 
