@@ -33,7 +33,8 @@ arma::vec solve(const arma::mat &mEq, const arma::mat &vr)
 void test()
 {
     cout << "Start " << endl;
-    arma::mat trMat = GetCoefs(11);
+    arma::mat trMat = GetCoefs(11); //zero coef must be divided by two
+    arma::mat trMatI= GetCoefs(11, true); //Inverse
     arma::vec xi    = GetNodes(11);
     arma::vec vals(11);
     xi = 2*xi - 1;
@@ -44,10 +45,13 @@ void test()
     for(int i = 0; i < xi.n_rows; ++i)
         vals(i) = fun(xi(i));
 
-    arma::vec res = trMat*vals;
+    arma::vec res  = trMat*vals;
+    arma::vec resI = trMatI*res;
 
     cout << "Result" << endl;
     cout << res << endl;
+    cout << resI << endl;
+    cout << vals << endl;
 
 }
 
