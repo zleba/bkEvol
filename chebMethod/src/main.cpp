@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     if(argc >= 3) nNow   = atoi(argv[2]);
 
     TFile *file = TFile::Open("sol.root", "RECREATE");
-    TH2D *hEqMat = FillEqMat(3, nSplit, nNow);
+    TH2D *hEqMat = FillEqMat(10, nSplit, nNow);
     file->Write();
     file->Close();
     

@@ -52,3 +52,36 @@ arma::vec GetNodes(int Size)
     return xi;
 }
 
+arma::mat GetCoefs(int oldSize, bool isInverse = false)
+{
+    const int N = oldSize - 1;
+    assert(N%2 == 0);
+
+    arma::mat coef(oldSize,oldSize);
+
+    double mul = 1;
+    double C = 1./N;
+    if(isInverse == true) {C = 1./2; }
+
+    //isInverse = false;
+    for(int k = 0; k <= N; ++k) {
+        double s = 0;
+        if(!isInverse) {
+            coef(k,N) = C;
+            coef(k,0) = C * (k % 2 == 1 ? -1 : 1);
+        }
+        else {
+            mul = k % 2 == 1 ? -1 : 1;
+            coef(N-k, N) = C * mul;
+            coef(N-k, 0) = C ;
+        }
+
+        for(int n = 1; n <= N-1; ++n) {
+            double el = cos(n*k*M_PI / N) * 2.*C * mul;
+            if(!isInverse) coef(k,N-n) = el;
+            else           coef(N-k,N-n) = el;
+        }
+    }
+    
+    return coef;
+}

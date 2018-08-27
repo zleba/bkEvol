@@ -4,7 +4,7 @@
 # zmax1e_2
 #myDir = $ENV(PWD)
 
-nJobs = 30
+nJobs = 100
 
 #initialdir = logs/$(myTag)
 
