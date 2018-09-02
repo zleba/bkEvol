@@ -7,6 +7,12 @@
 #include "cheb.h"
 #include "nodes.h"
 #include <vector>
+#include "kernels.h"
+
+double eps = 1e-10;
+
+Kernel *kerObj;
+
 
 /*
 double Cheb(int n, double x)
@@ -18,20 +24,27 @@ double Cheb(int n, double x)
 }
 */
 
-//Fast evaluation of Cheb
+//Fast evaluation of Cheb (between 0 and 1)
 double Cheb(int n, double x)
 {
-    if(x < -1 || x > 1) return 0;
+    if(x < 0 || x > 1)
+        cout <<"Hela " <<  x << endl;
+    assert(-eps <= x && x <= 1+eps);
+    x = max( 0., x);
+    x = min( 1., x);
+
+    //x = 2*x-1;
+    //assert(-1 <= x && x <= 1);
+    //if(x < -1 || x > 1) return 0;
     if(n == 0) return 1;
-    if(n == 1) return x;
+    if(n == 1) return 2*x-1;
 
     int n2 = n/2;
     if(n % 2 == 0)  //even
-        return 2*pow(Cheb(n2,x),2)- 1;
+        return 2*pow(Cheb(n2,x),2) - 1;
     else //odd
-        return 2*Cheb(n2+1,x)*Cheb(n2,x) - x;
+        return 2*Cheb(n2+1,x)*Cheb(n2,x) - (2*x-1);
 }
-
 
 
 
@@ -45,15 +58,24 @@ double F(double x, double l2)
 }
 */
 
-inline double FK(int n, double K)
+double FK(int n, double K)
 {
-    double KRen = 2.*(K - (Kmin+Kmax)/2.) / (Kmax - Kmin);
+    assert(Kmin <= K);
+    assert(K <= Kmax);
+    double KRen = (K-Kmin)/(Kmax-Kmin);
+    assert(abs(KRen) <= 1 + eps);
+    KRen = max( 0., KRen);
+    KRen = min( 1., KRen);
     return Cheb(n, KRen);
 }
 
-inline double Fy(int n, double y)
+double Fy(int n, double y)
 {
-    double yRen = 2.*(y - (rapMin+rapMax)/2.) / (rapMax - rapMin);
+    assert(rapMin <= y);
+    assert(y <= rapMax);
+    double yRen = (y - rapMin) / (rapMax - rapMin);
+    assert(yRen <= 1);
+    assert(yRen >= 0);
     return Cheb(n, yRen);
 }
 
@@ -67,7 +89,7 @@ double F(Indx indx, Point p)
     //return res;
 }
 
-double Kernel(Indx idp, Indx idq, Point p, Point q)
+double KernelAdv(Indx idp, Indx idq, Point p, Point q) //Extended DGLAP term
 {
     double x  = exp(-p.y);
     double xp = exp(-q.y);
@@ -135,17 +157,19 @@ vector<IntPoint> KernelGeneral(Point p, Point q, double wR, double wS)
     double x  = exp(-p.y);
     double xp = exp(-q.y);
 
-    double k2 = exp(p.K);
-    double l2 = exp(q.K);
+    double l = exp(0.5*p.K);
+    double lp = exp(0.5*q.K);
     
     double z = x/xp;
 
-    if(l2 > k2) return {};
-    if(z >= 1) return {};
+    //if(l > lp) return {};
+    if(z > 1) return {};
     
+    /*
     Point qq;
     qq.y = p.y;
     qq.K = q.K;
+    */
 
     //double Fl = F(idp, p);
     //double Fr = F(idq, q);
@@ -154,21 +178,79 @@ vector<IntPoint> KernelGeneral(Point p, Point q, double wR, double wS)
     //double FunReg = Fl * z/(1 - z) * (Fr - Frsub);
     //double FunSin = -log(1-x) * Fl*Frsub;
 
-    double kerReg = z/(1 - z);
-    double kerSin = -log(1-x);
+    //double kerReg = z/(1 - z);
+    //double kerSin = -log(1-x);
+
+    Point qq;
+    qq.y = q.y;
+    qq.K = p.K;
+
+    double kerReg = kerObj->BFKL__Eps_Off(l, lp, z);
+    double kerSin = kerObj->BFKL__Eps_Diag(l, lp, z);
+
+    if(!isfinite(kerReg)) {
+        cout <<"Helenka "  << l << " "<< lp <<" "<<  z << endl;
+        cout << kerReg << endl;
+        cout << kerSin << endl;
+        assert(0);
+    }
+    assert(isfinite(kerReg));
+    assert(isfinite(kerSin));
+
+    return { IntPoint(p,q,  kerReg*wR),
+             IntPoint(p,qq, kerSin*wR) };
 
 
-    //assert(isfinite(FunSing));
-
-
-    return 
-    {
-        IntPoint(p,q,  kerReg*wR),
-        IntPoint(p,qq,-kerReg*wR+kerSin*wS)
-    };
-
-
+    //return { IntPoint(p,q,  kerReg*wR),
+             //IntPoint(p,qq,-kerReg*wR+kerSin*wS) };
 }
+
+pair<double,double> KernelSpecific(Indx idp, Indx idq, Point p, Point q)
+{
+    double x  = exp(-p.y);
+    double xp = exp(-q.y);
+
+    double l = exp(0.5*p.K);
+    double lp = exp(0.5*q.K);
+    
+    double z = x/xp;
+
+    assert(z <= 1+eps); 
+    
+    /*
+    Point qq;
+    qq.y = p.y;
+    qq.K = q.K;
+    */
+
+    //double Fl = F(idp, p);
+    //double Fr = F(idq, q);
+    //double Frsub = F(idq, qq);
+
+    //double FunReg = Fl * z/(1 - z) * (Fr - Frsub);
+    //double FunSin = -log(1-x) * Fl*Frsub;
+
+    //double kerReg = z/(1 - z);
+    //double kerSin = -log(1-x);
+
+    Point qq;
+    qq.y = q.y;
+    qq.K = p.K;
+
+
+    double Fl = F(idp, p);
+    double Fr = F(idq, q);
+    double Frsub = F(idq, qq);
+
+    double kerReg = kerObj->BFKL__Eps_Off(l, lp, z);
+    double kerSin = kerObj->BFKL__Eps_Diag(l, lp, z);
+
+    return {Fl*(kerReg*Fr + kerSin*Frsub), 0};
+}
+
+
+
+
 
 
 
@@ -199,11 +281,11 @@ void IntegrateMC()
 
 }
 
+#include "nodes.h"
+
 //Simple method of integration
-void IntegrateDummy()
+void IntegrateDummy(Indx idp, Indx idq)
 {
-    Indx idp(2,1);
-    Indx idq(2,1);
 
     double sum = 0;
     const int N = 80;
@@ -228,14 +310,11 @@ void IntegrateDummy()
 }
 
 
-#include "nodes.h"
 
-void IntegrateClever()
+double IntegrateClever(Indx idp, Indx idq)
 {
-    Indx idp(2,1);
-    Indx idq(2,1);
 
-    const int N = 50;
+    const int N = 60;
     //Nodes nodRap(N, rapMin,rapMax);
     //Nodes nodK(N, Kmin, Kmax);
 
@@ -259,18 +338,20 @@ void IntegrateClever()
             for(int iq = 0; iq <= N; ++iq) { //Integral over z
                 Point q(rapMin + xi(iq)*(p.y-rapMin), Kmin + (p.K-Kmin)*xi(jq));
                 double wAdd = (p.y-rapMin)*(p.K-Kmin) * wgts(iq)*wgts(jq);
-                double kerReg, kerSin;
-                tie(kerReg, kerSin) = KernelBasic(idp, idq, p, q);
-                double ker = kerReg + kerSin/(p.y-rapMin);
+                //double kerReg, kerSin;
+                //tie(kerReg, kerSin) = KernelBasic(idp, idq, p, q);
+                //double ker = kerReg + kerSin/(p.y-rapMin);
                 
-                sum += ker* wBase * wAdd;
+                sum += KernelSpecific(idp,idq,p,q).first * wBase * wAdd;
+                //sum += ker* wBase * wAdd;
             }
         }
     }
 
     //uY*uK * ker * vY*vK
 
-    cout <<"Radek " <<  sum << endl;
+    //cout <<"Radek " <<  sum << endl;
+    return sum;
 
 }
 
@@ -279,6 +360,13 @@ Integrator::Integrator(int N_) : N(N_)
 {
     arma::vec wgts = GetWeights(N+1); //basic weights
     arma::vec xi   = GetNodes(N+1);  //basic nodes
+
+    kerObj = new Kernel();
+    kerObj->mu2 = exp(Kmin);
+    kerObj->eps = 1e-7;
+    kerObj->LnFreeze2 = log(1);
+
+
 
     for(int ip = 0; ip <= N; ++ip) 
     for(int jp = 0; jp <= N; ++jp) {
@@ -352,12 +440,13 @@ double Integrator::Eval(Indx idp, Indx idq)
 
     double sum = 0;
 
-    /*
+
     for(auto &v : points) {
         //sum += v.ker * F(idp, v.p) * F(idq, v.q);
         sum += v.ker *  pY[v.p.y]*pK[v.p.K]* qY[v.q.y]*qK[v.q.K];
     }
-    */
+
+    /*
     auto it = points.begin();
     for(auto b : breaks) {
         double fac = pY[it->p.y]*pK[it->p.K]* qY[it->q.y];
@@ -369,6 +458,7 @@ double Integrator::Eval(Indx idp, Indx idq)
         }
         sum += fac * sumTemp;
     }
+    */
 
     return sum;
 

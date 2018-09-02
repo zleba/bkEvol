@@ -79,6 +79,7 @@ static double GetAngle(double l, double lp, double cond)
 
 double Kernel::alphaS(double l, double lp)
 {
+    return 0.2;
     double LnQ2 = max(2*log(l), LnFreeze2); //Currently select l as scale
 
     //cout << "LnQ2 " << LnQ2 << endl;

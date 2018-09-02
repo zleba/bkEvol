@@ -4,7 +4,7 @@
 # zmax1e_2
 #myDir = $ENV(PWD)
 
-nJobs = 100
+nJobs = 500
 
 #initialdir = logs/$(myTag)
 
@@ -43,7 +43,7 @@ log                 = logs/$(Process).log
 # if not set, default is 3 hours
 # longer requested job run times get more hit in the fairshare calculation
 #
-+RequestRuntime     = 2800
++RequestRuntime     = 1800
 #
 #
 ##########################

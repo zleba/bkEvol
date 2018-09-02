@@ -12,16 +12,19 @@ armaLib := $(shell echo \${armaDir}/install/*lib*)  #Currently only include used
 armaInc := $(shell echo \${armaDir}/install/include)
 
 
-OBJ=obj/cheb.o obj/integration.o obj/nodes.o obj/Spline.o obj/alphaSpline.o
-cheb: ${OBJ} obj/main.o
-	g++ -g -O2 $^ -o $@  $(rootLibs)
+OBJ=obj/cheb.o obj/integration.o obj/nodes.o obj/Spline.o obj/alphaSpline.o obj/kernels.o 
+cheb: ${OBJ} obj/main.o 
+	g++ -g -O2 $^ -o $@  $(rootLibs) -lopenblas
+
+one: ${OBJ} obj/one.o 
+	g++ -g -O2 $^ -o $@  $(rootLibs) -lopenblas
 
 solve: ${OBJ} obj/solve.o
 	g++ -g -O2 $^ -o $@  $(rootLibs)  -lopenblas
 
 
-testmain: obj/testmain.o obj/tests.o obj/cheb.o obj/nodes.o  obj/Spline.o obj/alphaSpline.o
-	g++ -g  -O2 $^ -o $@
+testmain: obj/testmain.o obj/tests.o  $(OBJ)
+	g++ -g  -O2 $^ -o $@  -lopenblas
 
-obj/%.o: src/%.cpp
-	g++ -g -O2 -Iinc  $(rootCFLAGS) -DARMA_DONT_USE_WRAPPER  -I$(armaInc)  -c $^ -o $@  
+obj/%.o: src/%.cpp 
+	g++ -g -O2 -Iinc  $(rootCFLAGS) -DARMA_DONT_USE_WRAPPER  -I$(armaInc)  -c $^    -o $@  

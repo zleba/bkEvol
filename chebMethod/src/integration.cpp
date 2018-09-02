@@ -1,4 +1,3 @@
-typedef double Double;
 #include <functional>
 #include "cheb.h"
 using namespace std;

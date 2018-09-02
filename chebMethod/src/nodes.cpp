@@ -85,3 +85,59 @@ arma::mat GetCoefs(int oldSize, bool isInverse = false)
     
     return coef;
 }
+
+arma::vec getPols(int Size, double x)
+{
+    arma::vec pol(Size);
+
+    if(Size >= 1) pol(0) = 1;
+    if(Size >= 2) pol(1) = 2*x-1;
+
+    for(int i = 2; i < Size; ++i)
+        pol(i) = 2*(2*x-1)*pol(i-1) - pol(i-2);
+    return pol;
+}
+
+
+
+double evalPol(const arma::vec &polCoef, double x)
+{
+    arma::vec pols = getPols(polCoef.n_rows, x);
+    return arma::dot(pols,polCoef);
+}
+
+arma::vec interpol(arma::vec xi, double x)
+{
+    arma::vec coefs(xi.n_rows);
+    for(int i = 0; i < xi.n_rows; ++i) {
+        double num = 1, den = 1;
+        for(int j = 0; j < xi.n_rows; ++j)
+            if(j != i) {
+                num *= x     - xi(j);
+                den *= xi(i) - xi(j);
+            }
+        coefs(i) = num/den;
+    }
+    return coefs;
+}
+
+double interpol(arma::vec xi, arma::vec vals, double x)
+{
+    arma::vec coefs = interpol(xi, x);
+    return arma::dot(coefs,vals);
+}
+
+
+
+//Transformation from chebNodes between 0 and 1 to chebNodes between a and b
+arma::mat GetCoefs(int Size, double a, double b)
+{
+    arma::vec xi   = a + (b-a)*GetNodes(Size);
+
+    arma::mat polsAll(Size,Size);
+    for(int i = 0; i < Size; ++i)
+        polsAll.row(i) = getPols(Size,xi(i));
+
+    arma::mat coef = GetCoefs(Size); //now we have cheb pol coef
+    return polsAll*coef;
+}
