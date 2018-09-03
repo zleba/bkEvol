@@ -5,12 +5,10 @@ cd $TMP
 echo $PWD
 
 
-name=bjetsDeltaHL
-
 source $address/../setup62.sh
 
-cp  $address/cheb .
+cp  $address/one .
 
-./cheb $1 $2
+./one $1 $2
 
 cp *.root  $address/farm/histos/Sol${2}.root

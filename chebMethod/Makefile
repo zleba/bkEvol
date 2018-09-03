@@ -22,6 +22,9 @@ one: ${OBJ} obj/one.o
 solve: ${OBJ} obj/solve.o
 	g++ -g -O2 $^ -o $@  $(rootLibs)  -lopenblas
 
+solveOne: ${OBJ} obj/solveOne.o
+	g++ -g -O2 $^ -o $@  $(rootLibs)  -lopenblas
+
 
 testmain: obj/testmain.o obj/tests.o  $(OBJ)
 	g++ -g  -O2 $^ -o $@  -lopenblas

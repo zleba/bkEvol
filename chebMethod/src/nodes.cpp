@@ -86,6 +86,18 @@ arma::mat GetCoefs(int oldSize, bool isInverse = false)
     return coef;
 }
 
+arma::mat GetCoefsCheb(int oldSize)
+{
+    arma::mat coef = GetCoefs(oldSize);
+
+    coef.row(0) *= 0.5;
+    coef.row(coef.n_rows-1) *= 0.5;
+    
+    return coef;
+}
+
+
+
 arma::vec getPols(int Size, double x)
 {
     arma::vec pol(Size);

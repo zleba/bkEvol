@@ -23,7 +23,6 @@ TH2D *FillEqMat(long long Ncheb, long long nSplit, long long nNow)
         ++iGlob;
         auto iStart = (nItem*nNow)/nSplit;
         auto iEnd   = (nItem*(nNow+1))/nSplit;
-
         if(! (iStart <= iGlob && iGlob < iEnd)) continue;
 
         //cout << iGlob << endl;
@@ -49,7 +48,6 @@ int main(int argc, char **argv)
     //IntegrateClever(idp, idq);
     //return 0;
     long long nSplit = 1, nNow = 0;
-    
     if(argc >= 2) nSplit = atoi(argv[1]);
     if(argc >= 3) nNow   = atoi(argv[2]);
 
