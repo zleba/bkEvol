@@ -1,6 +1,7 @@
 #ifndef _CHEB_
 #define _CHEB_
 
+#include <iostream>
 #include <cstdlib>
 #include <cmath>
 #include <vector>
@@ -77,6 +78,8 @@ struct Point {
         assert(rapMin <= y);
         assert(y <= rapMax);
         assert(Kmin <= K);
+        if(K < Kmax + 1e-8)
+            K = std::min(Kmax, K);
         assert(K <= Kmax);
     }
     Point() {}

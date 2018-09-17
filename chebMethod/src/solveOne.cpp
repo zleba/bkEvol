@@ -1,6 +1,7 @@
 #include <iostream>
 #include "TFile.h"
 #include "TH2D.h"
+#include "TString.h"
 
 #include <armadillo>
 #include "nodes.h"
@@ -55,18 +56,31 @@ arma::vec getInput(int nCh, function<double(double)> fun)
     return resGl;
 }
 
-
-
-
-int main()
+arma::mat getMatrix(TString fName)
 {
-    TFile *file = TFile::Open("farm/results/bfkl33.root");
+    TFile *file = TFile::Open(fName);
 
     TH2D *hMat = nullptr;
     file->GetObject("Mat", hMat);
     assert(hMat);
 
     arma::mat mEq = histo2mat(hMat);
+    file->Close();
+    return mEq;
+}
+
+
+
+
+
+int main()
+{
+    arma::mat mEqDP    = getMatrix("farm/results/_DGLAP.root");
+    arma::mat mEqDPadd = getMatrix("farm/results/_DGLAPadd.root");
+    arma::mat mEqBFKL = getMatrix("farm/results/_fullBFKL.root");
+    arma::mat mEq =  mEqBFKL;
+    //arma::mat mEq = mEqDP + mEqDPadd + mEqBFKL;
+
     int nCh = round(sqrt(mEq.n_rows));
     arma::vec v0 = getInput(nCh, [](double kt2){return kt2*exp(-kt2);});
 
@@ -84,7 +98,8 @@ int main()
         double kt2 = exp(K);
 
         int iGl = nCh*iy + ikt;
-        cout << x << " "<< kt2 <<" : "<< res(iGl) <<" "<< v0(ikt) << endl;
+        //cout << x << " "<< kt2 <<" : "<< res(iGl) <<" "<< v0(ikt) << endl;
+        cout << x << " "<< kt2 <<"  "<< res(iGl) << endl;
         //cout << x << " "<< kt2 <<" : "<< eval(res, x, kt2) <<" "<< v0(ikt)<< endl;
 
     }

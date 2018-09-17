@@ -4,7 +4,7 @@
 # zmax1e_2
 #myDir = $ENV(PWD)
 
-nJobs = 50
+#nJobs = 150
 
 #initialdir = logs/$(myTag)
 
@@ -14,13 +14,13 @@ nJobs = 50
 getenv = True
 
 executable          =  run.sh
-arguments           = "$(nJobs) $(Process)"
+arguments           = "$(tag) $(nJobs) $(Process)"
 transfer_executable = False
 universe            = vanilla
 #input               = /nfs/dust/my/path/to/data/mypayload.data
-output              = logs/$(Process).out
-error               = logs/$(Process).err
-log                 = logs/$(Process).log
+output              = logs/$(tag)_$(Process).out
+error               = logs/$(tag)_$(Process).err
+log                 = logs/$(tag)_$(Process).log
 #_$(Cluster)_$(Process) gets substituted by cluster and process ID, putting it in the output files leads to individual files
 #for each job. Remember that regular filesystem rules about maximum files in a directory and maximum filesizes apply (warning)
 #htcondor will (as any other batchsystem) not create any directories for you, hence these need to exist.
@@ -47,4 +47,5 @@ log                 = logs/$(Process).log
 #
 #
 ##########################
+
 queue $(nJobs)

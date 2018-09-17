@@ -9,6 +9,6 @@ source $address/../setup62.sh
 
 cp  $address/one .
 
-./one $1 $2
+./one $1 $2 $3
 
-cp *.root  $address/farm/histos/Sol${2}.root
+cp *.root  $address/farm/histos/${1}_${3}.root
