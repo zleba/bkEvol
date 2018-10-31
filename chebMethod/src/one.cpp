@@ -10,7 +10,6 @@ using namespace std;
 //
 //
 
-
 struct IntP {
     Point q;
     double ker;
@@ -19,6 +18,7 @@ struct IntP {
 };
 
 
+const int N = 256;
 
 
 struct Filler {
@@ -46,7 +46,6 @@ struct Filler {
 
 std::map<Point,double> Filler::GetIntegral(Point p)
 {
-    const int N = 256;
     arma::vec wgts = GetWeights(N+1); //basic weights
     arma::vec xi   = GetNodes(N+1);  //basic nodes
 
@@ -67,7 +66,6 @@ std::map<Point,double> Filler::GetIntegral(Point p)
 //More advanced integration method
 std::map<Point,double> Filler::GetIntegralFull(Point p) 
 {
-    const int N = 256;
     arma::vec wgts = GetWeights(N+1); //basic weights
     arma::vec xi   = GetNodes(N+1);  //basic nodes
 
@@ -187,7 +185,6 @@ double Filler::IntegrateCleverDGLAPadd(int N, Point p, Indx idq)
 std::map<Point,double>  Filler::GetIntegralDGLAPadd(Point p)
 {
     std::map<Point,double> points;
-    const int N = 256;
     arma::vec wgts = GetWeights(N+1); //basic weights
     arma::vec xi   = GetNodes(N+1);  //basic nodes
 
@@ -276,7 +273,6 @@ double Filler::IntegrateCleverDGLAP(int N, Point p, Indx idq)
 std::map<Point,double>  Filler::GetIntegralDGLAP(Point p)
 {
     std::map<Point,double> points;
-    const int N = 256;
     arma::vec wgts = GetWeights(N+1); //basic weights
     arma::vec xi   = GetNodes(N+1);  //basic nodes
 
@@ -549,7 +545,7 @@ void saveAsHist(const arma::mat &m)
 
 int main(int argc, char **argv)
 {
-    int nCh = 33;
+    int nCh = 17;
 
     long long nSplit = 1, nNow = 0;
     string kerName = argv[1];

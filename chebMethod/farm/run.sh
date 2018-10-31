@@ -7,7 +7,8 @@ echo $PWD
 
 source $address/../setup62.sh
 
-cp  $address/one .
+cp  $address/build/one .
+#cp one  $address/farm/histos/${1}_${3}.root
 
 ./one $1 $2 $3
 

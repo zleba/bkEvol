@@ -4,6 +4,7 @@ hasGPU=false
 #ROOT libraries
 rootCFLAGS := $(shell root-config --cflags)
 rootLibs := $(shell root-config --libs)
+$(info ${rootCFLAGS} ${rootLibs})
 
 #ARMADILLO path (install by ./installARMA.sh)
 armaDir :=$(shell  echo \${ARMADIR})
@@ -25,7 +26,8 @@ endif
 
 
 CC=mpic++ #MPI compiler
-myFlags=-std=c++11 -O2 -g -fopenmp 
+#CC=g++ #MPI compiler
+myFlags=-std=c++11 -O2 -g -fopenmp  -I${CMAKE_PREFIX_PATH}/include
 
 
 ifeq ($(strip $(hasGPU)),true)
@@ -52,13 +54,14 @@ INCS = inc/Solver.h inc/integration.h inc/gpuBooster.h inc/Fitter.h inc/Settings
 
 
 bkEvol: $(OBJS) obj/main.o
-	$(CC)  $(myFlags)  $^ $(rootLibs) -lMinuit   $(hdf5Lib)  -lopenblas  $(CUDAlib) $(GSL) -lm   -o $@  #-llapack 
+	$(CC)  $(myFlags)  $^ $(rootLibs) -lMinuit   $(hdf5Lib)  -lopenblas  $(CUDAlib) $(GSL) -lm      -o $@  #-llapack 
 
 bkevol.so:   $(OBJS) obj/pyBind.o
 	$(CC) $(myFlags) -shared -std=c++11   $^ -o $@  $(rootLibs) -lMinuit   $(hdf5Lib)  -lopenblas  $(CUDAlib) $(GSL) -lm -fPIC
 
+#`python -m pybind11 --includes` 
 obj/pyBind.o: src/pyBind.cpp $(INCS)
-	$(CC) $(myFlags)   -I$(armaInc)  `python-config --includes`  `python -m pybind11 --includes`  -DpwdDir=$(shell pwd) -DhasGPU=$(hasGPU) -I./inc   -DARMA_DONT_USE_WRAPPER   $(CUDAINC)  -c   -o $@ $< $(rootCFLAGS) -fPIC
+	$(CC) $(myFlags)   -I$(armaInc)  `python-config --includes` -Ipybind  -DpwdDir=$(shell pwd) -DhasGPU=$(hasGPU) -I./inc   -DARMA_DONT_USE_WRAPPER   $(CUDAINC)  -c   -o $@ $< $(rootCFLAGS) -fPIC
 
 obj/%.o: src/%.cpp $(INCS)
 	$(CC) $(myFlags)   -I$(armaInc)   -DpwdDir=$(shell pwd) -DhasGPU=$(hasGPU) -I./inc   -DARMA_DONT_USE_WRAPPER   $(CUDAINC)  -c   -o $@ $< $(rootCFLAGS) -fPIC

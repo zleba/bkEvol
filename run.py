@@ -62,8 +62,9 @@ kernels = [
 ]
 
 
+S.kernelType = "BFKL:eps" #+sub)
 #S.kernelType = "BFKLplain:Sub"
-S.kernelType = "BFKL_res_DGLAP:Eps"
+#S.kernelType = "BFKL_res_DGLAP:Eps"
 #S.kernelType = "BFKL_res_DGLAP:ZEps"
 
 #S.kernelType = "BFKL_res_kc_full_DGLAP:Eps"
