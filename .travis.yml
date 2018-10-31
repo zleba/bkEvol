@@ -1,0 +1,26 @@
+sudo: required
+  
+services:
+    - docker
+
+before_install:
+#    - Build system
+    - docker pull zleba/bkevol 
+    - docker build . --cache-from  zleba/bkevol -t zleba/bkevol 
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker push zleba/bkevol
+
+script:
+#Compile it
+    - ./rd make -j`nproc` bkEvol
+    - mkdir public
+
+
+deploy:
+  provider: pages
+  local-dir : public
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+  keep-history: false
+  on:
+    branch: master
