@@ -12,6 +12,7 @@ RUN  mkdir /bkevol  &&\
                         libboost-dev \
                         libopenblas-dev \
                         python-pip \
+     && pip install --upgrade pip \
      && pip install pybind11 \
      && rm -rf /var/lib/apt/lists/* 
 
