@@ -27,7 +27,6 @@ S.xMin = 1e-6
 S.xMax = 1
 
 
-
 #S.kernelType = "BFKLplain:sub" #)
 #S.kernelType = "BFKL:eps" #+sub)
 S.kernelType = "BFKL_res:Eps" #+sub)
@@ -87,4 +86,14 @@ sol.SaveEvolKernels("testNow.h5")
 #sol.LoadEvolKernels("testNow.h5")
 sol.EvolveAll()
 #sol.PrintBaseGrid()
-print sol.getResult()
+res = sol.getResult()
+k2Grid = sol.getK2grid()
+
+import numpy as np
+import matplotlib.pyplot as plt
+for i,r in enumerate(res[::6]):
+    plt.loglog(k2Grid, r, label=i)
+plt.ylim(1e-7, 1e6)
+plt.xlabel('$k^2 [GeV^2]$')
+plt.ylabel('$\phi$')
+plt.show()

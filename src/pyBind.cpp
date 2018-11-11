@@ -37,6 +37,8 @@ PYBIND11_MODULE(bkevol, m) {
         .def("PrintGrid", &Solver::PrintGrid)
         .def("PrintBaseGrid", &Solver::PrintBaseGrid)
         .def("PrintReduce", &Solver::PrintReduce)
+        .def("getResult", &Solver::getResult)
+        .def("getK2grid", &Solver::getK2grid)
         .def("CalcF2L", &Solver::CalcF2L)
         .def("SaveEvolKernels", &Solver::SaveEvolKernels)
         .def("LoadEvolKernels", &Solver::LoadEvolKernels);

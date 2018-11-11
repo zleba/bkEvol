@@ -184,7 +184,24 @@ struct Solver {
     }
     Solver(std::istream &Stream) : Solver(Settings(Stream)) {}
 
-
+    vector<double> getK2grid() {
+        vector<double> k2Grid;
+        for(int i = 0; i < nodBase.xi.size(); ++i) {
+            double L  = nodBase.xi[i];
+            double kt2 = exp(L);
+            k2Grid.push_back(kt2);
+        }
+        return k2Grid;
+    }
+    vector<vector<double>> getResult() {
+        vector<vector<double>> res(S.Nrap);
+        for(int y = 0; y < res.size(); ++y) {
+            res[y].resize(S.N);
+            for(int k = 0; k < S.N; ++k)
+                res[y][k] = PhiRapN[y](k);
+        }
+        return res;
+    }
 
     //vector<arma::mat> matN;
     arma::cube matN, matNInv;
