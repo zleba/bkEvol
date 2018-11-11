@@ -27,7 +27,7 @@ endif
 
 #CC=mpic++ #MPI compiler
 CC=g++ #MPI compiler
-myFlags=-std=c++11 -O2 -g  -fopenmp  -I${CMAKE_PREFIX_PATH}/include
+myFlags=-std=c++11 -O2 -g  -fopenmp -I/usr/include/mpi   -I${CMAKE_PREFIX_PATH}/include
 
 
 ifeq ($(strip $(hasGPU)),true)
