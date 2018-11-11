@@ -25,9 +25,9 @@ endif
 
 
 
-CC=mpic++ #MPI compiler
-#CC=g++ #MPI compiler
-myFlags=-std=c++11 -O2 -g -fopenmp  -I${CMAKE_PREFIX_PATH}/include
+#CC=mpic++ #MPI compiler
+CC=g++ #MPI compiler
+myFlags=-std=c++11 -O2 -g  -fopenmp  -I${CMAKE_PREFIX_PATH}/include
 
 
 ifeq ($(strip $(hasGPU)),true)
@@ -54,10 +54,10 @@ INCS = inc/Solver.h inc/integration.h inc/gpuBooster.h inc/Fitter.h inc/Settings
 
 
 bkEvol: $(OBJS) obj/main.o
-	$(CC)  $(myFlags)  $^ $(rootLibs) -lMinuit   $(hdf5Lib)  -lopenblas  $(CUDAlib) $(GSL) -lm      -o $@  #-llapack 
+	$(CC)  $(myFlags)  $^ $(rootLibs) -lMinuit   $(hdf5Lib)  -lopenblas  $(CUDAlib) $(GSL) -lm   -L${CMAKE_PREFIX_PATH}/lib -lmpi  -lmpi_cxx    -o $@  #-llapack 
 
 bkevol.so:   $(OBJS) obj/pyBind.o
-	$(CC) $(myFlags) -shared -std=c++11   $^ -o $@  $(rootLibs) -lMinuit   $(hdf5Lib)  -lopenblas  $(CUDAlib) $(GSL) -lm -fPIC
+	$(CC) $(myFlags) -shared -std=c++11   $^ -o $@  $(rootLibs) -lMinuit    -lopenblas  $(CUDAlib) $(GSL) -lm  -L${CMAKE_PREFIX_PATH}/lib $(hdf5Lib)    -fPIC
 
 #`python -m pybind11 --includes` 
 obj/pyBind.o: src/pyBind.cpp $(INCS)

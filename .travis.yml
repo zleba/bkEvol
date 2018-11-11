@@ -12,7 +12,7 @@ before_install:
 
 script:
 #Compile it
-    - ./rd make -j`nproc` bkEvol
+    - ./rd make -j`nproc` bkEvol bkevol.so
     - mkdir public
 
 

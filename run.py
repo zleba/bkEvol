@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import bkevol as bk
 
 S = bk.Settings()
@@ -62,7 +62,7 @@ kernels = [
 ]
 
 
-S.kernelType = "BFKL:eps" #+sub)
+S.kernelType = "BFKL:Sub" #+sub)
 #S.kernelType = "BFKLplain:Sub"
 #S.kernelType = "BFKL_res_DGLAP:Eps"
 #S.kernelType = "BFKL_res_DGLAP:ZEps"
@@ -85,5 +85,5 @@ sol.CalcEvolKernel()
 
 sol.SaveEvolKernels("testNow.h5")
 #sol.LoadEvolKernels("testNow.h5")
-#sol.EvolveAll()
+sol.EvolveAll()
 sol.PrintBaseGrid();
