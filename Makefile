@@ -69,5 +69,7 @@ obj/%.o: src/%.cpp $(INCS)
 obj/gpuBooster.o: src/gpuBooster.cxx
 	 $(CUDAcompiler) -arch=sm_52 -ccbin g++ -I./inc -I$(CUDAbase)/samples/common/inc/ -I$(armaInc) -DARMA_DONT_USE_WRAPPER  -m64  -Xcompiler  -fopenmp    -std=c++11  -o obj/gpuBooster.o -c src/gpuBooster.cxx
 
+
+
 clean:
 	rm obj/*.o bkEvol bkevol.so
