@@ -30,7 +30,7 @@ TH2D *FillEqMat(long long Ncheb, long long nSplit, long long nNow)
 
         Indx idp(toLocal(Ncheb, pI));
         Indx idq(toLocal(Ncheb, qI));
-        double val    = integrator.Eval(idp,idq);
+        double val    = integrator.Eval(idp, idq);
         double valDir = IntegrateClever(idp, idq);
         hEqMat->SetBinContent(pI+1,qI+1, val);
         cout <<idp.iy <<" "<< idp.iK <<" : "<< idq.iy <<" "<< idq.iK << " <> "<< val <<" "<< valDir <<  endl;

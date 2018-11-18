@@ -5,11 +5,12 @@ cd $TMP
 echo $PWD
 
 
-source $address/../setup62.sh
+source $address/../setup6.sh
 
-cp  $address/build/one .
+#cp  $address/build/one .
+cp  $address/one .
 #cp one  $address/farm/histos/${1}_${3}.root
 
 ./one $1 $2 $3
 
-cp *.root  $address/farm/histos/${1}_${3}.root
+cp *.root  $address/farm/histos/${1}/${3}.root

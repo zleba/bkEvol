@@ -1,5 +1,5 @@
-#include "/home/radek/Dropbox/patrick/undolding/PlottingHelper/plottingHelper.h"
-R__LOAD_LIBRARY(/home/radek/Dropbox/patrick/undolding/PlottingHelper/plottingHelper_C.so)
+#include "PlottingHelper/plottingHelper.h"
+R__LOAD_LIBRARY(PlottingHelper/plottingHelper_C.so)
 using namespace PlottingHelper;
 
 TGraph2D* Transform(map<double, TGraph*>   grMap)
@@ -66,6 +66,7 @@ pair<map<double, TGraph*>, map<double, TGraph*>> ReadMichalFileBoth(const char *
         double kT2, y, Phi, x;
         sStream >> x >> kT2 >> Phi;
         y = -log(x/1e-2);
+        cout << "x,kt2,phi " << x <<" "<< kT2 <<" "<< Phi << endl;
 
         if(grMapY.count(x) == 0) {
             grMapY[x] = new TGraph();
@@ -287,8 +288,8 @@ void compareNew()
     map<double, TGraph*> graphsRA1y, graphsRA1kt;
     map<double, TGraph*> graphsRA2y, graphsRA2kt;
     //tie(graphsMLy, graphsMLkt) = ReadMichalFileBoth("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/eq84M.dat");
-    tie(graphsRA1y, graphsRA1kt) = ReadMichalFileBoth("bfklFull.txt");// hope85highStat");
-    tie(graphsRA2y, graphsRA2kt) = ReadMichalFileBoth("bfklFullDGLAP.txt");
+    tie(graphsRA1y, graphsRA1kt) = ReadMichalFileBoth("bfklFull2.txt");// hope85highStat");
+    tie(graphsRA2y, graphsRA2kt) = ReadMichalFileBoth("bfklFullCheb.txt");
 
 
     //auto graphsRA = ReadFileRadek("/home/radek/Dropbox/system-of-equations/note_tex/new-grids-tests/RADEK_kt2expmKT2/res79normal");
@@ -317,8 +318,23 @@ void compareNew()
 
 
     TCanvas *can3 = new TCanvas("can3", "canvas");
-    PlotOverview({graphsRA1y, graphsRA2y}, "y", 1e-6, 2e2);
+    can3->SetLogx();
+    can3->SetLogy();
+    graphsRA1y[1e-6]->Draw("apl");
+    graphsRA2y[1e-6]->Draw("same pl");
+
+    for(int i = 0; i < graphsRA2y[1e-6]->GetN(); ++i) {
+        double x, y1, y2;
+        graphsRA2y[1e-6]->GetPoint(i, x, y2);
+        y1 = graphsRA1y[1e-6]->Eval(x);
+        cout << x << " "<< y2/y1 << endl;
+    }
+
+    GetYaxis()->SetRangeUser(1e-6, 400);
+
+    //PlotOverview({graphsRA1y, graphsRA2y}, "y", 1e-6, 2e2);
     can3->SaveAs("comparisonYfixed.pdf");
+    return 0;
     TCanvas *can4 = new TCanvas("can4", "canvas");
     PlotOverview({graphsRA1kt, graphsRA2kt}, "kT", 1e-6, 2e2);
     can4->SaveAs("comparisonKTfixed.pdf");

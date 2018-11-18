@@ -81,6 +81,7 @@ double Kernel::alphaS(double l, double lp)
 {
     double LnQ2 = max(2*log(l), LnFreeze2); //Currently select l as scale
 
+    return 0.2;
     //cout << "LnQ2 " << LnQ2 << endl;
     //cout << "LnFreeze2 " << LnFreeze2 <<" "<< alphaSpline::alphaS(LnQ2, 4)<<    endl;
     return alphaSpline::alphaS(LnQ2, 4) * 3./M_PI;

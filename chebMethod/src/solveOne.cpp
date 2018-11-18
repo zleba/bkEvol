@@ -10,6 +10,7 @@
 
 using namespace std;
 
+//TH2D to arma::mat
 arma::mat histo2mat(TH2D *h)
 {
     arma::mat m(h->GetNbinsX(), h->GetNbinsY());
@@ -22,6 +23,7 @@ arma::mat histo2mat(TH2D *h)
 }
 
 
+//DUMMY
 double eval(arma::vec res, double x, double kt2) //TODO let it work
 {
     double y = log(1./x);
@@ -35,10 +37,12 @@ double eval(arma::vec res, double x, double kt2) //TODO let it work
 }
 
 
+//Input condition from function
 arma::vec getInput(int nCh, function<double(double)> fun)
 {
     arma::vec xi   = GetNodes(nCh);
 
+    //Get function vals at kT nodes
     arma::vec vals(xi.n_rows);
     for(int i = 0; i < xi.n_rows; ++i) {
         double K = Kmin + (Kmax-Kmin) * xi(i);
@@ -47,8 +51,8 @@ arma::vec getInput(int nCh, function<double(double)> fun)
         //cout << "orgVal " << i << " "<< vals(i) << endl;
     }
 
-    arma::vec resGl(nCh*nCh);
-
+    //Multiplicate to all y-nodes
+    arma::vec resGl(nCh*nCh); //input condition in y+kT
     for(int iGl = 0; iGl < nCh*nCh; ++iGl) {
         auto ind = toLocal(nCh, iGl);
         resGl(iGl) = vals(ind.iK);
@@ -56,6 +60,7 @@ arma::vec getInput(int nCh, function<double(double)> fun)
     return resGl;
 }
 
+//Read matrix from file
 arma::mat getMatrix(TString fName)
 {
     TFile *file = TFile::Open(fName);
@@ -71,17 +76,17 @@ arma::mat getMatrix(TString fName)
 
 
 
-
-
 int main()
 {
     arma::mat mEqDP    = getMatrix("farm/results/_DGLAP.root");
     arma::mat mEqDPadd = getMatrix("farm/results/_DGLAPadd.root");
-    arma::mat mEqBFKL = getMatrix("farm/results/_fullBFKL.root");
-    arma::mat mEq =  mEqBFKL;
+    arma::mat mEqBFKL  = getMatrix("farm/results/fullBFKL2.root");//  _fullBFKL.root");
+    arma::mat mEqBFKLs = getMatrix("farm/results/simpleBFKL.root");
+    arma::mat mEq =  mEqBFKL + mEqDP + mEqDPadd;
     //arma::mat mEq = mEqDP + mEqDPadd + mEqBFKL;
 
     int nCh = round(sqrt(mEq.n_rows));
+    cout << "nCh = " << nCh << endl;
     arma::vec v0 = getInput(nCh, [](double kt2){return kt2*exp(-kt2);});
 
     arma::vec res = arma::solve(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEq, v0);

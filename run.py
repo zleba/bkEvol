@@ -10,19 +10,19 @@ S.eps  = 1e-7
 S.mu2  = 1e-2
 
 
-S.NkT2 = 17
-S.NkT2int = 17
+#S.NkT2 = 65
+#S.NkT2int = 65
 
-#S.NkT2 = 257
-#S.NkT2int = 257
+S.NkT2 = 129
+S.NkT2int = 129
 
 
 S.kT2Min = 1e-2
 S.kT2Max = 1e6
 
 
-S.Nrap = 64
-#S.Nrap = 512
+#S.Nrap = 64
+S.Nrap = 512
 S.xMin = 1e-6
 S.xMax = 1
 
@@ -62,10 +62,13 @@ kernels = [
 ]
 
 
-S.kernelType = "BFKL:Sub" #+sub)
+S.kernelType = "BFKL:Eps" #+sub)
 #S.kernelType = "BFKLplain:Sub"
 #S.kernelType = "BFKL_res_DGLAP:Eps"
 #S.kernelType = "BFKL_res_DGLAP:ZEps"
+
+#S.kernelType = "BFKL_res_kc_full_DGLAP_full_kc:Eps" # BFKL_res_kc_full_DGLAP:Eps"
+S.kernelType = "BFKL_res_kc_full:Eps"
 
 #S.kernelType = "BFKL_res_kc_full_DGLAP:Eps"
 #S.kernelType = "BFKL_res_kc_full_DGLAP_simp_kc:Eps"
@@ -83,8 +86,8 @@ sol.CalcEvolKernel()
 #sol.EvolveAll()
 #sol.PrintBaseGrid();
 
-sol.SaveEvolKernels("testNow.h5")
+#sol.SaveEvolKernels("testNow.h5")
 #sol.LoadEvolKernels("testNow.h5")
 sol.EvolveAll()
-#sol.PrintBaseGrid()
-print sol.getResult()
+sol.PrintBaseGrid()
+#print sol.getResult()

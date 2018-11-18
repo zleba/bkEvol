@@ -23,6 +23,7 @@ const int N = 256;
 
 struct Filler {
     Kernel *kerObj;
+    string kerName;
     void Init();
     arma::mat EvalAll(string kerName,  int Ncheb, long long nSplit, long long nNow);
     std::map<Point,double> GetIntegral(Point p);
@@ -317,14 +318,6 @@ std::map<Point,double>  Filler::GetIntegralDGLAP(Point p)
 
 
 
-
-
-
-
-
-
-
-
 double Filler::IntegrateClever2(int N, Point p, Indx idq)
 {
     arma::vec wgts = GetWeights(N+1); //basic weights
@@ -358,24 +351,25 @@ double Filler::IntegrateClever2(int N, Point p, Indx idq)
 
 
 
-arma::mat Filler::EvalAll(string kerName,  int Ncheb, long long nSplit, long long nNow)
+arma::mat Filler::EvalAll(string kerName_,  int Ncheb, long long nSplit, long long nNow)
 {
+    kerName = kerName_;
     assert(Ncheb % 2 == 1);
 
     arma::vec wgts = GetWeights(Ncheb); //basic weights
     arma::vec xi   = GetNodes(Ncheb);  //basic nodes
 
-     std::map<Point,double> (Filler::*fun) (Point);
-     if(kerName == "simpleBFKL")
-         fun = &Filler::GetIntegral;
-     else if(kerName == "fullBFKL")
-         fun = &Filler::GetIntegralFull;
-     else if(kerName == "DGLAP")
-         fun = &Filler::GetIntegralDGLAP;
-     else if(kerName == "DGLAPadd")
-         fun = &Filler::GetIntegralDGLAPadd;
-     else
-         assert(0);
+    std::map<Point,double> (Filler::*fun) (Point);
+    if(kerName == "simpleBFKL")
+        fun = &Filler::GetIntegral;
+    else if(kerName == "fullBFKL")
+        fun = &Filler::GetIntegralFull;
+    else if(kerName == "DGLAP")
+        fun = &Filler::GetIntegralDGLAP;
+    else if(kerName == "DGLAPadd")
+        fun = &Filler::GetIntegralDGLAPadd;
+    else
+        assert(0);
 
 
     std::map<double,double> qY, qK;
@@ -415,9 +409,19 @@ arma::mat Filler::EvalAll(string kerName,  int Ncheb, long long nSplit, long lon
 
 
 
+    //#pragma omp parallel for
     for(int jy = 0; jy < Ncheb; ++jy) //Loop over cheb Polynomials
     for(int jk = 0; jk < Ncheb; ++jk) {
         int jGlob = jy*Ncheb + jk;
+
+        /*
+        #pragma omp parallel for
+        for(int jGlob = 0; jGlob < Ncheb*Ncheb; ++jGlob) {
+        auto ind = toLocal(Ncheb, jGlob);
+        int jy = ind.iy;
+        int jk = ind.iK;
+        */
+
 
         //if(!(jy == 2 && jk == 2)) continue; //TODO cut
 
@@ -429,6 +433,7 @@ arma::mat Filler::EvalAll(string kerName,  int Ncheb, long long nSplit, long lon
             //if(!(iy == 1 && ik == 1)) continue; //TODO cut
             int iGlob = iy*Ncheb + ik;
             if(! (iStart <= iGlob && iGlob < iEnd)) continue;
+            cout << "radek " << jy <<" "<< jk<<" : "<< iGlob << endl;
             double sum = 0;
             for(auto &v : points[iy][ik])
                 //sum += v.ker * F(idq, v.q);
@@ -481,10 +486,18 @@ map<Point,double> Filler::KernelGeneral1D(Point p, Point q, double wR, double wS
     qq.y = q.y;
     qq.K = p.K;
 
-    //double kerReg = kerObj->BFKL__Eps_Off(l, lp, z);
-    //double kerSin = kerObj->BFKL__Eps_Diag(l, lp, z);
-    double kerReg = kerObj->BFKL_res_kc_full__Eps_Off(l, lp, z);
-    double kerSin = kerObj->BFKL_res_kc_full__Eps_Diag(l, lp, z);
+    double kerReg = 0, kerSin = 0;
+    if (kerName == "simpleBFKL") {
+        kerReg = kerObj->BFKL__Eps_Off(l, lp, z);
+        kerSin = kerObj->BFKL__Eps_Diag(l, lp, z);
+    }
+    else if(kerName == "fullBFKL") {
+        kerReg = kerObj->BFKL_res_kc_full__Eps_Off(l, lp, z);
+        kerSin = kerObj->BFKL_res_kc_full__Eps_Diag(l, lp, z);
+    }
+    else {
+        assert(0);
+    }
 
     if(!isfinite(kerReg)) {
         cout <<"Helenka "  << l << " "<< lp <<" "<<  z << endl;
@@ -522,10 +535,18 @@ pair<double,double> Filler::KernelSpecific1D(Indx idq, Point p, Point q)
     double Fr = F(idq, q);
     double Frsub = F(idq, qq);
 
-    //double kerReg = kerObj->BFKL__Eps_Off(l, lp, z);
-    //double kerSin = kerObj->BFKL__Eps_Diag(l, lp, z);
-    double kerReg = kerObj->BFKL_res_kc_full__Eps_Off(l, lp, z);
-    double kerSin = kerObj->BFKL_res_kc_full__Eps_Diag(l, lp, z);
+    double kerReg=0, kerSin=0;
+    if (kerName == "simpleBFKL") {
+        kerReg = kerObj->BFKL__Eps_Off(l, lp, z);
+        kerSin = kerObj->BFKL__Eps_Diag(l, lp, z);
+    }
+    else if (kerName == "fullBFKL") {
+        kerReg = kerObj->BFKL_res_kc_full__Eps_Off(l, lp, z);
+        kerSin = kerObj->BFKL_res_kc_full__Eps_Diag(l, lp, z);
+    }
+    else {
+        assert(0);
+    }
 
     return {kerReg*Fr + kerSin*Frsub, 0};
 }
@@ -545,7 +566,7 @@ void saveAsHist(const arma::mat &m)
 
 int main(int argc, char **argv)
 {
-    int nCh = 17;
+    int nCh = 33;
 
     long long nSplit = 1, nNow = 0;
     string kerName = argv[1];
@@ -555,7 +576,7 @@ int main(int argc, char **argv)
 
     Filler filler;
     filler.Init();
-    arma::mat evMat = filler.EvalAll(kerName, nCh,nSplit,nNow);
+    arma::mat evMat = filler.EvalAll(kerName, nCh, nSplit, nNow);
 
     //Transform to Nodes->Nodes
     arma::mat mCoef1d = GetCoefsCheb(nCh);

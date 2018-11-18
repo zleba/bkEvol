@@ -41,6 +41,7 @@ arma::vec GetWeights(int Size)
         //cout << i <<" "<<setprecision(17)<< wgt[i] << endl;
 }
 
+//Get vector with nodes by definition between 0 and 1
 arma::vec GetNodes(int Size)
 {
     assert((Size - 1) % 2 == 0);
@@ -52,6 +53,7 @@ arma::vec GetNodes(int Size)
     return xi;
 }
 
+//Transformation matrix between cheb. nodes and cheb. coeficients
 arma::mat GetCoefs(int oldSize, bool isInverse = false)
 {
     const int N = oldSize - 1;
@@ -86,6 +88,7 @@ arma::mat GetCoefs(int oldSize, bool isInverse = false)
     return coef;
 }
 
+//with better normalization of the borders
 arma::mat GetCoefsCheb(int oldSize)
 {
     arma::mat coef = GetCoefs(oldSize);
@@ -97,7 +100,7 @@ arma::mat GetCoefsCheb(int oldSize)
 }
 
 
-
+//Evaluate cheb pols to Size at point x
 arma::vec getPols(int Size, double x)
 {
     arma::vec pol(Size);
@@ -111,13 +114,14 @@ arma::vec getPols(int Size, double x)
 }
 
 
-
+//Evaluate Cheb. pol at point x
 double evalPol(const arma::vec &polCoef, double x)
 {
     arma::vec pols = getPols(polCoef.n_rows, x);
     return arma::dot(pols,polCoef);
 }
 
+//Get Interpolation vector at point x
 arma::vec interpol(arma::vec xi, double x)
 {
     arma::vec coefs(xi.n_rows);
@@ -133,6 +137,7 @@ arma::vec interpol(arma::vec xi, double x)
     return coefs;
 }
 
+//Get interpolated function value at point x
 double interpol(arma::vec xi, arma::vec vals, double x)
 {
     arma::vec coefs = interpol(xi, x);

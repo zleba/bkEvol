@@ -116,7 +116,7 @@ void Solver::CalcEvolKernel()
         double z = exp(-rap);
 
         arma::mat mTemp(S.Nint,S.Nint,arma::fill::zeros);
-        cout << "Matrix init y " << y << endl;
+        cout << "\rMatrix init y " << y << flush;// << endl;
 
 #pragma omp parallel for
         for(int i = 0; i < S.Nint; ++i)   //loop over L
@@ -337,11 +337,11 @@ void Solver::EvolveAll()
             PhiRapN[y] = Phi0N[y];
     }
 
-    cout << "RADEK start,Nrap " << start+1<<" "<< Nrap << endl;
+    cout << "Evolving start,Nrap " << start+1<<" "<< Nrap << endl;
 
     for(int y = start+1; y < Nrap; ++y) {
         //Starting point of evol with 0.5 (Trapezius)
-        cout << "RADEK " << y << endl;
+        cout << "\rEvolving " << y << flush;
 
         arma::vec yTemp(N, arma::fill::zeros);
         arma::vec myVec(N, arma::fill::zeros);
@@ -672,7 +672,7 @@ void Solver::PrintBaseGrid()
             double kt2 = exp(L);
             double x = exp(-yNow);
 
-            cout << x << " "<< sqrt(kt2) <<"  " <<  PhiRapN[y](l) << endl;
+            cout << x << " "<< kt2 <<"  " <<  PhiRapN[y](l) << endl;
         }
 }
 
