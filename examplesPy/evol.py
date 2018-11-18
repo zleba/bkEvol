@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#%matplotlib inline
 import bkevol as bk
 
 S = bk.Settings()
