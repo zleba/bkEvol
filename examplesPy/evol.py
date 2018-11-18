@@ -17,13 +17,13 @@ S.mu2  = 1e-2
 
 # Number of the grid points in $k_T^2$ variable and the range in $k_T^2$
 
-S.NkT2 = S.NkT2int = 17
+S.NkT2 = S.NkT2int = 33
 S.kT2Min = 1e-2
 S.kT2Max = 1e6
 
 # Number of the grid points in $x$ variable and the xMin and xMax values
 
-S.Nrap = 64
+S.Nrap = 128
 #S.Nrap = 512
 S.xMin = 1e-6
 S.xMax = 1
@@ -79,9 +79,9 @@ k2Grid = sol.getK2grid()
 #%matplotlib inline
 import numpy as np
 import matplotlib.pyplot as plt
-for i,r in enumerate(res[::6]):
+for i,r in enumerate(res[::12]):
     plt.loglog(k2Grid, r, label=i)
-plt.ylim(1e-7, 1e6)
+plt.ylim(1e-7, 1e3)
 plt.xlabel('$k^2 [GeV^2]$')
 plt.ylabel('$\phi$')
 plt.show()
