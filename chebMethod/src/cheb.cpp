@@ -283,7 +283,7 @@ void IntegrateMC()
 
 #include "nodes.h"
 
-//Simple method of integration
+//Simple method of integration (Trapezius rule)
 void IntegrateDummy(Indx idp, Indx idq)
 {
 

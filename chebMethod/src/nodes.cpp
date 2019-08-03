@@ -1,5 +1,7 @@
 #include <armadillo>
 #include <cassert>
+#include <iostream>
+using namespace std;
 
 //For points between 0 and 1
 arma::vec GetWeights(int Size)
@@ -152,9 +154,31 @@ arma::mat GetCoefs(int Size, double a, double b)
     arma::vec xi   = a + (b-a)*GetNodes(Size);
 
     arma::mat polsAll(Size,Size);
-    for(int i = 0; i < Size; ++i)
-        polsAll.row(i) = getPols(Size,xi(i));
+    for(int i = 0; i < Size; ++i) {
+        polsAll.row(i) = getPols(Size,xi(i)).t();
+    }
 
-    arma::mat coef = GetCoefs(Size); //now we have cheb pol coef
+    //arma::mat coef = GetCoefs(Size); //now we have cheb pol coef
+    arma::mat coef = GetCoefsCheb(Size); //now we have cheb pol coef
+
+    return polsAll*coef;
+}
+
+
+
+//Transformation from chebNodes between 0 and 1 to chebNodes between a and b
+arma::mat GetCoefsGeneric(int Size, int SizeI, double a, double b)
+{
+    //SizeI : the integration size
+    arma::vec xi   = a + (b-a)*GetNodes(SizeI);
+
+    arma::mat polsAll(SizeI,Size);
+    for(int i = 0; i < SizeI; ++i) {
+        polsAll.row(i) = getPols(Size,xi(i)).t();
+    }
+
+    //arma::mat coef = GetCoefs(Size); //now we have cheb pol coef
+    arma::mat coef = GetCoefsCheb(Size); //now we have cheb pol coef
+
     return polsAll*coef;
 }

@@ -25,9 +25,13 @@ solve: ${OBJ} obj/solve.o
 solveOne: ${OBJ} obj/solveOne.o
 	g++ -g -O2 $^ -o $@  $(rootLibs)  -lopenblas
 
+nonLin: ${OBJ} obj/nonLin.o
+	g++ -g -O2 $^ -o $@  $(rootLibs)  -lopenblas
 
 testmain: obj/testmain.o obj/tests.o  $(OBJ)
 	g++ -g  -O2 $^ -o $@  -lopenblas
+
+
 
 obj/%.o: src/%.cpp 
 	g++ -g -O2 -fopenmp -Iinc  $(rootCFLAGS) -DARMA_DONT_USE_WRAPPER  -I$(armaInc)  -c $^    -o $@  

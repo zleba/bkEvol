@@ -55,7 +55,7 @@ arma::vec getInput(int nCh, function<double(double)> fun)
     arma::vec resGl(nCh*nCh); //input condition in y+kT
     for(int iGl = 0; iGl < nCh*nCh; ++iGl) {
         auto ind = toLocal(nCh, iGl);
-        resGl(iGl) = vals(ind.iK);
+        resGl(iGl) = vals(ind.iK);// * (1-exp(-ind.iy));
     }
     return resGl;
 }
@@ -88,6 +88,13 @@ int main()
     int nCh = round(sqrt(mEq.n_rows));
     cout << "nCh = " << nCh << endl;
     arma::vec v0 = getInput(nCh, [](double kt2){return kt2*exp(-kt2);});
+
+    //cout << "cond1 " <<  arma::cond(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEqBFKL) << endl;
+    //cout << "cond2 " <<  arma::cond(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEqBFKLs) << endl;
+    //cout << "cond3 " <<  arma::cond(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEqDP) << endl;
+    //cout << "cond4 " <<  arma::cond(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEqDPadd) << endl;
+    //cout << "condA " <<  arma::cond(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEq) << endl;
+    //return 0;
 
     arma::vec res = arma::solve(arma::eye<arma::mat>(mEq.n_rows,mEq.n_cols) - mEq, v0);
     cout << res  << endl;
