@@ -73,3 +73,7 @@ obj/gpuBooster.o: src/gpuBooster.cxx
 
 clean:
 	rm obj/*.o bkEvol bkevol.so
+
+
+examplesNb/evol.ipynb: examplesPy/evol.py
+	jupytext --to notebook  $^; mv  examplesPy/$(notdir $@) $@
